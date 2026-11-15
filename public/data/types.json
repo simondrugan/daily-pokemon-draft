@@ -1,0 +1,30 @@
+{
+  "types": [
+    { "id": "beast",  "name": "Beast",  "color": "#a1887f" },
+    { "id": "fire",   "name": "Fire",   "color": "#ef5b3a" },
+    { "id": "water",  "name": "Water",  "color": "#3d8fe0" },
+    { "id": "plant",  "name": "Plant",  "color": "#4caf50" },
+    { "id": "storm",  "name": "Storm",  "color": "#e6b800" },
+    { "id": "frost",  "name": "Frost",  "color": "#5cc8d6" },
+    { "id": "stone",  "name": "Stone",  "color": "#9c8a5a" },
+    { "id": "wind",   "name": "Wind",   "color": "#8fa8d8" },
+    { "id": "venom",  "name": "Venom",  "color": "#a352c4" },
+    { "id": "mind",   "name": "Mind",   "color": "#ec5f9a" },
+    { "id": "shadow", "name": "Shadow", "color": "#5d5080" },
+    { "id": "metal",  "name": "Metal",  "color": "#8a9aa8" }
+  ],
+  "chart": {
+    "beast":  { "strong": ["mind", "wind"],                     "weak": ["stone", "metal"],                           "none": ["shadow"] },
+    "fire":   { "strong": ["plant", "frost", "metal", "shadow"], "weak": ["fire", "water", "stone"],                   "none": [] },
+    "water":  { "strong": ["fire", "stone"],                    "weak": ["water", "plant", "frost"],                  "none": [] },
+    "plant":  { "strong": ["water", "stone"],                   "weak": ["fire", "plant", "venom", "metal", "wind"],  "none": [] },
+    "storm":  { "strong": ["water", "wind", "metal"],           "weak": ["storm", "plant", "stone"],                  "none": [] },
+    "frost":  { "strong": ["plant", "wind"],                    "weak": ["fire", "water", "frost", "metal"],          "none": [] },
+    "stone":  { "strong": ["fire", "frost", "wind", "storm"],   "weak": ["water", "plant", "metal"],                  "none": [] },
+    "wind":   { "strong": ["plant", "venom"],                   "weak": ["stone", "metal", "storm"],                  "none": [] },
+    "venom":  { "strong": ["plant", "beast", "water"],          "weak": ["venom", "stone", "shadow"],                 "none": ["metal"] },
+    "mind":   { "strong": ["venom", "storm"],                   "weak": ["mind", "metal", "shadow"],                  "none": [] },
+    "shadow": { "strong": ["mind", "shadow"],                   "weak": ["fire", "storm"],                            "none": [] },
+    "metal":  { "strong": ["frost", "stone", "beast"],          "weak": ["fire", "water", "metal", "storm"],          "none": [] }
+  }
+}

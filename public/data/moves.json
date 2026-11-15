@@ -1,0 +1,75 @@
+{
+  "moves": [
+    { "id": "tackle",       "name": "Tackle",       "type": "beast",  "category": "physical", "power": 50,  "accuracy": 100 },
+    { "id": "bite",         "name": "Bite",         "type": "beast",  "category": "physical", "power": 65,  "accuracy": 100, "effects": [{ "type": "flinch", "chance": 20 }] },
+    { "id": "body-check",   "name": "Body Check",   "type": "beast",  "category": "physical", "power": 85,  "accuracy": 100 },
+    { "id": "rampage",      "name": "Rampage",      "type": "beast",  "category": "physical", "power": 110, "accuracy": 85,  "effects": [{ "type": "recoil", "percent": 25 }] },
+    { "id": "quick-lunge",  "name": "Quick Lunge",  "type": "beast",  "category": "physical", "power": 40,  "accuracy": 100, "priority": 1 },
+    { "id": "war-cry",      "name": "War Cry",      "type": "beast",  "category": "status",   "power": 0,   "accuracy": null, "effects": [{ "type": "stage", "target": "self", "stat": "atk", "stages": 2 }] },
+    { "id": "rest-up",      "name": "Rest Up",      "type": "beast",  "category": "status",   "power": 0,   "accuracy": null, "effects": [{ "type": "heal", "percent": 50 }] },
+
+    { "id": "ember",        "name": "Ember",        "type": "fire",   "category": "special",  "power": 50,  "accuracy": 100, "effects": [{ "type": "status", "status": "burn", "chance": 10 }] },
+    { "id": "flame-jet",    "name": "Flame Jet",    "type": "fire",   "category": "special",  "power": 85,  "accuracy": 100, "effects": [{ "type": "status", "status": "burn", "chance": 10 }] },
+    { "id": "blaze-charge", "name": "Blaze Charge", "type": "fire",   "category": "physical", "power": 110, "accuracy": 100, "effects": [{ "type": "recoil", "percent": 30 }] },
+    { "id": "firestorm",    "name": "Firestorm",    "type": "fire",   "category": "special",  "power": 120, "accuracy": 75,  "effects": [{ "type": "status", "status": "burn", "chance": 30 }] },
+    { "id": "scorch",       "name": "Scorch",       "type": "fire",   "category": "status",   "power": 0,   "accuracy": 85,  "effects": [{ "type": "status", "status": "burn", "chance": 100 }] },
+
+    { "id": "splash-shot",  "name": "Splash Shot",  "type": "water",  "category": "special",  "power": 50,  "accuracy": 100 },
+    { "id": "surge",        "name": "Surge",        "type": "water",  "category": "special",  "power": 85,  "accuracy": 100 },
+    { "id": "tidal-crash",  "name": "Tidal Crash",  "type": "water",  "category": "physical", "power": 100, "accuracy": 90 },
+    { "id": "deluge",       "name": "Deluge",       "type": "water",  "category": "special",  "power": 120, "accuracy": 75 },
+    { "id": "riptide",      "name": "Riptide",      "type": "water",  "category": "physical", "power": 40,  "accuracy": 100, "priority": 1 },
+
+    { "id": "vine-lash",    "name": "Vine Lash",    "type": "plant",  "category": "physical", "power": 50,  "accuracy": 100 },
+    { "id": "petal-gale",   "name": "Petal Gale",   "type": "plant",  "category": "special",  "power": 85,  "accuracy": 100 },
+    { "id": "sap-drain",    "name": "Sap Drain",    "type": "plant",  "category": "special",  "power": 70,  "accuracy": 100, "effects": [{ "type": "drain", "percent": 50 }] },
+    { "id": "timber-slam",  "name": "Timber Slam",  "type": "plant",  "category": "physical", "power": 115, "accuracy": 85 },
+    { "id": "drowsy-pollen","name": "Drowsy Pollen","type": "plant",  "category": "status",   "power": 0,   "accuracy": 70,  "effects": [{ "type": "status", "status": "sleep", "chance": 100 }] },
+
+    { "id": "zap",          "name": "Zap",          "type": "storm",  "category": "special",  "power": 50,  "accuracy": 100, "effects": [{ "type": "status", "status": "paralysis", "chance": 10 }] },
+    { "id": "bolt",         "name": "Bolt",         "type": "storm",  "category": "special",  "power": 85,  "accuracy": 100, "effects": [{ "type": "status", "status": "paralysis", "chance": 10 }] },
+    { "id": "skybreaker",   "name": "Skybreaker",   "type": "storm",  "category": "special",  "power": 120, "accuracy": 70,  "effects": [{ "type": "status", "status": "paralysis", "chance": 30 }] },
+    { "id": "volt-rush",    "name": "Volt Rush",    "type": "storm",  "category": "physical", "power": 90,  "accuracy": 100, "effects": [{ "type": "recoil", "percent": 25 }] },
+    { "id": "static-field", "name": "Static Field", "type": "storm",  "category": "status",   "power": 0,   "accuracy": 90,  "effects": [{ "type": "status", "status": "paralysis", "chance": 100 }] },
+
+    { "id": "frost-dart",   "name": "Frost Dart",   "type": "frost",  "category": "physical", "power": 40,  "accuracy": 100, "priority": 1 },
+    { "id": "frost-beam",   "name": "Frost Beam",   "type": "frost",  "category": "special",  "power": 85,  "accuracy": 100, "effects": [{ "type": "stage", "target": "foe", "stat": "spe", "stages": -1, "chance": 30 }] },
+    { "id": "icefall",      "name": "Icefall",      "type": "frost",  "category": "physical", "power": 100, "accuracy": 90 },
+    { "id": "whiteout",     "name": "Whiteout",     "type": "frost",  "category": "special",  "power": 115, "accuracy": 75 },
+
+    { "id": "rock-toss",    "name": "Rock Toss",    "type": "stone",  "category": "physical", "power": 50,  "accuracy": 100 },
+    { "id": "boulder-bash", "name": "Boulder Bash", "type": "stone",  "category": "physical", "power": 90,  "accuracy": 90 },
+    { "id": "landslide",    "name": "Landslide",    "type": "stone",  "category": "physical", "power": 120, "accuracy": 75 },
+    { "id": "grit-blast",   "name": "Grit Blast",   "type": "stone",  "category": "special",  "power": 80,  "accuracy": 100 },
+    { "id": "brace",        "name": "Brace",        "type": "stone",  "category": "status",   "power": 0,   "accuracy": null, "effects": [{ "type": "stage", "target": "self", "stat": "def", "stages": 2 }] },
+
+    { "id": "gust",         "name": "Gust",         "type": "wind",   "category": "special",  "power": 50,  "accuracy": 100 },
+    { "id": "razor-breeze", "name": "Razor Breeze", "type": "wind",   "category": "special",  "power": 75,  "accuracy": 100, "highCrit": true },
+    { "id": "dive-strike",  "name": "Dive Strike",  "type": "wind",   "category": "physical", "power": 95,  "accuracy": 95 },
+    { "id": "cyclone",      "name": "Cyclone",      "type": "wind",   "category": "special",  "power": 115, "accuracy": 75 },
+    { "id": "slipstream",   "name": "Slipstream",   "type": "wind",   "category": "status",   "power": 0,   "accuracy": null, "effects": [{ "type": "stage", "target": "self", "stat": "spe", "stages": 2 }] },
+
+    { "id": "sting",        "name": "Sting",        "type": "venom",  "category": "physical", "power": 55,  "accuracy": 100, "effects": [{ "type": "status", "status": "poison", "chance": 30 }] },
+    { "id": "sludge-shot",  "name": "Sludge Shot",  "type": "venom",  "category": "special",  "power": 85,  "accuracy": 100, "effects": [{ "type": "status", "status": "poison", "chance": 30 }] },
+    { "id": "corrode",      "name": "Corrode",      "type": "venom",  "category": "special",  "power": 70,  "accuracy": 100, "effects": [{ "type": "stage", "target": "foe", "stat": "spd", "stages": -1, "chance": 50 }] },
+    { "id": "toxic-mist",   "name": "Toxic Mist",   "type": "venom",  "category": "status",   "power": 0,   "accuracy": 90,  "effects": [{ "type": "status", "status": "poison", "chance": 100 }] },
+
+    { "id": "mind-pulse",   "name": "Mind Pulse",   "type": "mind",   "category": "special",  "power": 50,  "accuracy": 100 },
+    { "id": "psy-wave",     "name": "Psy Wave",     "type": "mind",   "category": "special",  "power": 90,  "accuracy": 100, "effects": [{ "type": "stage", "target": "foe", "stat": "spd", "stages": -1, "chance": 10 }] },
+    { "id": "mind-break",   "name": "Mind Break",   "type": "mind",   "category": "special",  "power": 120, "accuracy": 80 },
+    { "id": "focus",        "name": "Focus",        "type": "mind",   "category": "status",   "power": 0,   "accuracy": null, "effects": [{ "type": "stage", "target": "self", "stat": "spa", "stages": 2 }] },
+    { "id": "lullaby",      "name": "Lullaby",      "type": "mind",   "category": "status",   "power": 0,   "accuracy": 60,  "effects": [{ "type": "status", "status": "sleep", "chance": 100 }] },
+
+    { "id": "ambush",       "name": "Ambush",       "type": "shadow", "category": "physical", "power": 40,  "accuracy": 100, "priority": 1 },
+    { "id": "shade-claw",   "name": "Shade Claw",   "type": "shadow", "category": "physical", "power": 75,  "accuracy": 100, "highCrit": true },
+    { "id": "dusk-pulse",   "name": "Dusk Pulse",   "type": "shadow", "category": "special",  "power": 85,  "accuracy": 100, "effects": [{ "type": "flinch", "chance": 20 }] },
+    { "id": "eclipse",      "name": "Eclipse",      "type": "shadow", "category": "special",  "power": 120, "accuracy": 75 },
+    { "id": "dread-stare",  "name": "Dread Stare",  "type": "shadow", "category": "status",   "power": 0,   "accuracy": 100, "effects": [{ "type": "stage", "target": "foe", "stat": "atk", "stages": -2 }] },
+
+    { "id": "iron-jab",     "name": "Iron Jab",     "type": "metal",  "category": "physical", "power": 60,  "accuracy": 100 },
+    { "id": "buzzsaw",      "name": "Buzzsaw",      "type": "metal",  "category": "physical", "power": 75,  "accuracy": 100, "highCrit": true },
+    { "id": "steel-slam",   "name": "Steel Slam",   "type": "metal",  "category": "physical", "power": 90,  "accuracy": 100 },
+    { "id": "meteor-hammer","name": "Meteor Hammer","type": "metal",  "category": "physical", "power": 120, "accuracy": 75 },
+    { "id": "temper",       "name": "Temper",       "type": "metal",  "category": "status",   "power": 0,   "accuracy": null, "effects": [{ "type": "stage", "target": "self", "stat": "atk", "stages": 1 }, { "type": "stage", "target": "self", "stat": "def", "stages": 1 }] }
+  ]
+}

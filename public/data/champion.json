@@ -1,0 +1,13 @@
+{
+  "name": "Champion Sable",
+  "intro": "Sable has held the summit for years. Nobody has seen her lose.",
+  "statMultiplier": 1.05,
+  "team": [
+    { "creature": "galehawk",  "moves": ["dive-strike", "quick-lunge", "boulder-bash", "slipstream"] },
+    { "creature": "coilback",  "moves": ["bolt", "steel-slam", "static-field", "grit-blast"] },
+    { "creature": "dreamare",  "moves": ["psy-wave", "dusk-pulse", "lullaby", "focus"] },
+    { "creature": "glacibear", "moves": ["icefall", "rampage", "tidal-crash", "war-cry"] },
+    { "creature": "kilnback",  "moves": ["flame-jet", "boulder-bash", "scorch", "brace"] },
+    { "creature": "brinejaw",  "moves": ["tidal-crash", "bite", "riptide", "icefall"] }
+  ]
+}
