@@ -118,3 +118,8 @@ test('every fixture move can be described, and unsupported effects are flagged b
   assert.equal(describeMove(data.moveById['cinder-flick']), '10% chance to burn the foe');
   assert.equal(describeMove(data.moveById['mimic-dance']), '');
 });
+
+test('attacks with no power say their damage is not in battle yet', () => {
+  assert.match(describeMove({ category: 'physical', power: null }), /Damage not in battle yet/);
+  assert.doesNotMatch(describeMove({ category: 'physical', power: 50 }), /not in battle yet/);
+});

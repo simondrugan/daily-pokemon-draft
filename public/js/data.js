@@ -223,6 +223,8 @@ export function describeMove(move) {
     if (e.type === 'heal') parts.push(`Restores ${e.percent}% of max HP`);
     if (e.type === 'flinch') parts.push(cap('make the foe flinch'));
   }
+  // An attack with no power (fixed or variable damage) deals nothing until #10 is built.
+  if (move.category !== 'status' && !isAttack(move)) parts.push('Damage not in battle yet');
   if (notYet) parts.push('Special effect (not in battle yet)');
   return parts.join('. ');
 }
