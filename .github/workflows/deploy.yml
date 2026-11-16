@@ -1,22 +1,24 @@
 name: Test and deploy
 
+# - Every push and pull request runs the tests (the "test" check).
+# - A push to main publishes the site, after the tests pass.
+# - A pull request from this repository gets a playable preview at
+#   <site>/pr-preview/pr-<number>/, linked in a comment and removed when the PR closes.
+# Pages must be set to "Deploy from a branch: gh-pages / (root)" (see docs/WORKFLOW.md).
+
 on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   test:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,14 +31,88 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: test
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Only the newest push to main is published, so an older run can't land last.
+    concurrency:
+      group: pages-main
+      cancel-in-progress: true
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - run: bash tools/publish-pages.sh site
+
+  preview:
+    # Previews of branches from forks are skipped: their runs cannot write to this repository.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # One preview job per PR at a time; a newer push or the close cancels an older run,
+    # so the preview always matches the latest push and is never re-created after closing.
+    concurrency:
+      group: pr-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
+      pages: read
+    steps:
+      # The publishing scripts come from main; only the PR's public/ folder is published.
+      - uses: actions/checkout@v4
         with:
-          path: public
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+          persist-credentials: false
+      - name: Choose the publishing scripts
+        # Until this workflow is on main, main has no scripts yet, so use the PR's copy.
+        run: |
+          if [ -f tools/publish-pages.sh ] && [ -f tools/pr-comment.sh ]; then echo "TOOLS=tools" >> "$GITHUB_ENV"
+          else echo "TOOLS=pr/tools" >> "$GITHUB_ENV"; fi
+      - run: bash "$TOOLS/publish-pages.sh" preview "$PR" pr/public
+        env:
+          PR: ${{ github.event.pull_request.number }}
+      - name: Comment with the preview link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          base=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .html_url 2>/dev/null || true)
+          case "$base" in http*) ;; *) base="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/" ;; esac
+          url="${base%/}/pr-preview/pr-$PR/"
+          body="<!-- pr-preview -->
+          **Preview:** $url
+
+          Updated for ${SHA:0:7}. A new push can take a minute or two to appear; refresh if you see the old version."
+          bash "$TOOLS/pr-comment.sh" "$PR" "$body"
+
+  remove-preview:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pr-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - run: bash tools/publish-pages.sh remove "$PR"
+        env:
+          PR: ${{ github.event.pull_request.number }}
+      - name: Update the preview comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          bash tools/pr-comment.sh "$PR" "<!-- pr-preview -->
+          **Preview removed** because this pull request was closed." --only-update

@@ -88,9 +88,27 @@ comments as the plan, then do steps 6 to 8, push, and reply to each comment sayi
 ## Your part
 
 - Review and merge pull requests. Merging deploys the site.
+- To try a pull request before merging, open the **Preview** link that is posted as a comment on
+  it. It is a full copy of the game from that branch, updated on every push (allow a minute or
+  two) and deleted when the pull request is closed.
 - To ask for changes, comment on the pull request. The next run addresses them first.
 - Answer `needs-info` questions in a comment and remove the label.
 - Keep the scheduled runs paused if you do not want usage spent; nothing else depends on them.
+
+## Required repository setting: GitHub Pages
+
+The site and the pull request previews are published to the `gh-pages` branch:
+
+- `main` at the root: `https://<owner>.github.io/<repository>/`
+- each pull request at `pr-preview/pr-<number>/` below that
+
+In **Settings → Pages**, under **Build and deployment**, set **Source** to **Deploy from a
+branch**, then pick **gh-pages** and **/ (root)** and save. The `gh-pages` branch appears after
+the first deploy or preview; if it is not in the list yet, open any pull request or re-run the
+latest "Test and deploy" run on `main`, then come back. Do not edit `gh-pages` by hand: every
+deploy rewrites it.
+
+Previews are only made for branches in this repository, not for pull requests from forks.
 
 ## Recommended repository settings
 

@@ -1,7 +1,7 @@
 # Summit Draft
 
 A static web game: draft six creatures with random move sets, then battle the champion.
-No build step and no dependencies. Hosted on GitHub Pages from `public/`.
+No build step and no dependencies. Hosted on GitHub Pages from `public/` (published to the `gh-pages` branch, with a preview per pull request; see `docs/WORKFLOW.md`).
 
 ## Commands
 - `npm test` — run the test suite (Node's built-in runner). Must pass before every commit.
