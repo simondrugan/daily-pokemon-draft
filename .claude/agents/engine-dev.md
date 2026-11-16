@@ -9,3 +9,4 @@ You work on the game logic of Summit Draft. Read CLAUDE.md first.
 - New tunable numbers go in `public/data/settings.json` with a validation rule in `data.js`.
 - Run `npm test` and `npm run balance` before finishing. Report the balance numbers before and after your change.
 - Do not edit `app.js` or `style.css`; describe what the UI needs and hand it to ui-dev.
+- You are given one step of a plan written by the project manager. Do that step only. Finish with handoff notes: what you changed, anything the next role needs to know (new events, fields or settings), and anything you could not do.

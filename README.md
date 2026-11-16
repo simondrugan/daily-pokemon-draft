@@ -28,6 +28,6 @@ files in `public/data/`. See [docs/CONFIG.md](docs/CONFIG.md).
 
 ## How it is built
 
-See [docs/WORKFLOW.md](docs/WORKFLOW.md) for the ticket board and how the AI agents work on it.
+See [docs/WORKFLOW.md](docs/WORKFLOW.md) for the ticket board, the agent roles and how a ticket goes from idea to live.
 
 All creatures, moves and art in this game are original.
