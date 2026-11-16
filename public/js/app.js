@@ -3,7 +3,7 @@ import { loadData, effectiveness, describeMove, STATS } from './data.js';
 import { generateDraft, dailySeed, todayString, teamCoverage, defensiveProfile } from './draft.js';
 import { createBattle, runTurn, forceSwitch, activeOf, living } from './engine.js';
 import { chooseAction, chooseSwitch } from './ai.js';
-import { spriteSVG } from './sprite.js';
+import { iconHTML } from './sprite.js';
 import { hashString } from './rng.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -65,7 +65,7 @@ function statBars(stats) {
 function creatureCard(slot, { button = '', compact = false } = {}) {
   const c = data.creatureById[slot.creature];
   return `<article class="card ${compact ? 'compact' : ''}">
-    <div class="card-head">${spriteSVG(data, c, compact ? 56 : 88)}<div><h3>${c.name}</h3><div>${typeBadges(c.types)}</div></div></div>
+    <div class="card-head">${iconHTML(c, compact ? 56 : 88)}<div><h3>${c.name}</h3><div>${typeBadges(c.types)}</div></div></div>
     ${compact ? '' : statBars(c.stats)}
     <ul class="moves">${slot.moves.map(moveRow).join('')}</ul>
     ${compact ? '' : `<div class="profile">${profileHTML(c.types)}</div>`}
@@ -139,7 +139,7 @@ function renderHome() {
 function scoutHTML() {
   return data.champion.team.map((slot) => {
     const c = data.creatureById[slot.creature];
-    return `<div class="scout-item">${spriteSVG(data, c, 52)}<b>${c.name}</b><div>${typeBadges(c.types)}</div></div>`;
+    return `<div class="scout-item">${iconHTML(c, 52)}<b>${c.name}</b><div>${typeBadges(c.types)}</div></div>`;
   }).join('');
 }
 
@@ -176,7 +176,7 @@ function renderDraft() {
     </div>
     <aside class="draft-side">
       <h2>Your team (${app.team.length}/${total})</h2>
-      <div class="mini-team">${app.team.map((s) => { const c = data.creatureById[s.creature]; return `<div class="mini" title="${c.name}">${spriteSVG(data, c, 44)}<span>${c.name}</span></div>`; }).join('') || '<p class="muted">Nobody yet.</p>'}</div>
+      <div class="mini-team">${app.team.map((s) => { const c = data.creatureById[s.creature]; return `<div class="mini" title="${c.name}">${iconHTML(c, 44)}<span>${c.name}</span></div>`; }).join('') || '<p class="muted">Nobody yet.</p>'}</div>
       <h2>Team coverage</h2>
       <p class="muted small">Red rows are types your team struggles against. ✗ means you have no attack that hits that type hard.</p>
       ${coverageHTML(app.team)}
@@ -290,7 +290,7 @@ function refreshField(newSprites = false) {
     const sp = $('.f-sprite', el);
     if (newSprites || sp.dataset.id !== f.id) {
       sp.dataset.id = f.id;
-      sp.innerHTML = spriteSVG(data, c, 120);
+      sp.innerHTML = iconHTML(c, 120);
     }
     sp.classList.toggle('fainted', hp <= 0);
   }
@@ -322,7 +322,7 @@ function renderControls() {
       const danger = Math.max(...foe.types.map((t) => effectiveness(data, t, f.types)));
       const hint = app.hints && f.hp > 0 ? `<small class="${danger > 1 ? 'eff-weak-t' : danger < 1 ? 'eff-strong-t' : ''}">${danger > 1 ? `Weak to ${foe.name}'s type` : danger < 1 ? `Resists ${foe.name}'s type` : ''}</small>` : '';
       return `<button class="switch-btn" data-i="${i}" ${disabled ? 'disabled' : ''}>
-        ${spriteSVG(data, data.creatureById[f.id], 40)}
+        ${iconHTML(data.creatureById[f.id], 40)}
         <span><b>${f.name}</b> ${typeBadges(f.types)}<br><small>${f.hp <= 0 ? 'Fainted' : `${f.hp} / ${f.maxHp} HP`}${f.status ? ' · ' + STATUS_LABELS[f.status] : ''}</small>${hint}</span></button>`;
     }).join('');
     el.innerHTML = `<h3>${forced ? 'Choose your next creature' : 'Switch to…'}</h3><div class="switch-list">${items}</div>${forced ? '' : '<button id="back">Back</button>'}`;

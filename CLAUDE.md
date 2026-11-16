@@ -10,6 +10,7 @@ No build step and no dependencies. Hosted on GitHub Pages from `public/`.
 
 ## Layout
 - `public/data/*.json` — all game content and tuning. The owner edits these by hand, so keep them readable: one entry per line, aligned, no generated blobs. See `docs/CONFIG.md`.
+- `public/icons/<creature-id>.svg` — creature pictures. The owner replaces these with their own art, so never regenerate or overwrite existing ones. `npm run icons` adds placeholders for new creatures only.
 - `public/js/engine.js` — battle rules. Pure logic, no DOM. Returns events for the UI to play back.
 - `public/js/ai.js` — the champion's decisions.
 - `public/js/draft.js` — draft generation and team coverage.

@@ -130,8 +130,9 @@ main { max-width: 1180px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
 .pips i.out { background: #444b63; opacity: 1; }
 .status { font-size: .68rem; font-weight: 800; padding: .08rem .35rem; border-radius: 5px; color: #fff; }
 .status.burn { background: #d9532c; } .status.poison { background: #8e44ad; } .status.paralysis { background: #b8930a; } .status.sleep { background: #5c6b8a; }
+.sprite { object-fit: contain; flex: none; }
 .f-sprite { flex: none; transition: opacity .4s, transform .4s; }
-.fighter.player .f-sprite svg { transform: scaleX(-1); }
+.fighter.player .f-sprite .sprite { transform: scaleX(-1); }
 .f-sprite.fainted { opacity: .15; transform: translateY(14px); }
 .f-sprite.lunge { animation: lunge .25s ease; }
 .fighter.foe .f-sprite.lunge { animation-name: lunge-foe; }
@@ -195,7 +196,7 @@ td.eff-none, .pill.eff-none { background: #05060a; color: var(--muted); }
 @media (max-width: 560px) {
   main { padding: 1rem 16px 3rem; }
   .home h1 { font-size: 1.6rem; }
-  .f-sprite svg { width: 84px; height: 84px; }
+  .f-sprite .sprite { width: 84px; height: 84px; }
   .fighter { gap: .5rem; }
   .switch-list { grid-template-columns: 1fr; }
   .scout.small { grid-template-columns: repeat(3, 1fr); }

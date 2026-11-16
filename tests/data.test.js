@@ -35,3 +35,14 @@ test('every move can be described', () => {
   const data = loadTestData();
   for (const m of data.moves) assert.equal(typeof describeMove(m), 'string');
 });
+
+test('every creature has an icon file', async () => {
+  const { existsSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { iconPath } = await import('../public/js/sprite.js');
+  const data = loadTestData();
+  for (const c of data.creatures) {
+    const file = fileURLToPath(new URL('../public/' + iconPath(c), import.meta.url));
+    assert.ok(existsSync(file), `${c.name} has no icon: expected public/${iconPath(c)} (run "npm run icons" to create a placeholder)`);
+  }
+});

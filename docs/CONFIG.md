@@ -66,6 +66,18 @@ Effects:
 One or two types. `movePool` is the list the draft rolls move sets from; it needs at least as
 many moves as `movesPerCreature` and at least one attack.
 
+## Creature icons
+
+Each creature's picture is a file in `public/icons/`, named after the creature's `id`
+(`public/icons/kilnback.svg`). To change one, replace that file with your own artwork.
+
+- SVG is the default. To use a PNG, GIF or WebP instead, add the file and point the creature at
+  it in `creatures.json`: `"icon": "icons/kilnback.png"`.
+- Square images work best. They are shown from 40 to 120 pixels wide, so 256×256 is plenty.
+- Draw the creature facing left. The game mirrors it for the player's side of the battle.
+- When you add a new creature, run `npm run icons` to create a placeholder picture for it. That
+  command never overwrites an existing file.
+
 ## champion.json
 
 The opponent's name, intro line and team (each with a fixed move set). `statMultiplier` scales

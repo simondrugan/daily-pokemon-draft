@@ -119,6 +119,7 @@ export function validate(raw) {
     if (!Array.isArray(c.types) || c.types.length < 1 || c.types.length > 2) errors.push(`${at} needs 1 or 2 types`);
     for (const t of c.types || []) if (!typeIds.has(t)) errors.push(`${at} has unknown type "${t}"`);
     for (const s of STATS) if (!(c.stats && c.stats[s] > 0)) errors.push(`${at} is missing stat "${s}"`);
+    if (c.icon != null && (typeof c.icon !== 'string' || !c.icon)) errors.push(`${at} icon must be a file path such as "icons/${c.id}.png"`);
     const pool = c.movePool || [];
     for (const m of pool) if (!moveIds.has(m)) errors.push(`${at} movePool lists unknown move "${m}"`);
     if (new Set(pool).size !== pool.length) errors.push(`${at} movePool lists a move twice`);

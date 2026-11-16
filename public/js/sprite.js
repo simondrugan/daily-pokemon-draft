@@ -51,11 +51,19 @@ export function spriteSVG(data, creature, size = 96) {
   }
   parts.push(`<path d="M${50 - 5} ${cy + 4} q5 ${angry ? 3 : 6} 10 0" stroke="#1c1c28" stroke-width="2" fill="none" stroke-linecap="round"/>`);
 
-  return `<svg class="sprite" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="${creature.name}">${parts.join('')}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="sprite" viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="${creature.name}">${parts.join('')}</svg>`;
 }
 
 function shade(hex, amt) {
   const n = parseInt(hex.slice(1), 16);
   const c = (v) => Math.max(0, Math.min(255, v + amt));
   return '#' + [c(n >> 16), c((n >> 8) & 255), c(n & 255)].map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+// Where a creature's picture lives. Defaults to icons/<id>.svg; a creature can point
+// somewhere else with an "icon" field in creatures.json.
+export const iconPath = (creature) => creature.icon || `icons/${creature.id}.svg`;
+
+export function iconHTML(creature, size = 96) {
+  return `<img class="sprite" src="${iconPath(creature)}" width="${size}" height="${size}" alt="${creature.name}">`;
 }
