@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readRaw, loadTestData, readFixtureRaw, loadFixtureData } from './helpers.js';
-import { validate, effectiveness, describeMove, UNSUPPORTED, isAttack } from '../public/js/data.js';
+import { validate, effectiveness, describeMove, UNSUPPORTED, isAttack, isSupportedEffect, hasHighCrit } from '../public/js/data.js';
 
 // --- Checks on the shipped game data (public/data/) ---
 
@@ -67,6 +67,41 @@ test('validation accepts every not-yet-supported name but still rejects made-up 
   assert.ok(withEffects([{ type: 'wobble' }]).some((e) => e.includes('unknown effect type "wobble"')));
   assert.ok(withEffects([{ type: 'status', status: 'itchy' }]).some((e) => e.includes('unknown status "itchy"')));
   assert.ok(withEffects([{ type: 'stage', target: 'self', stat: 'luck', stages: 1 }]).some((e) => e.includes('unknown stat "luck"')));
+});
+
+test('an attack must have a "power" key, but it may be null or 0', () => {
+  const raw = readFixtureRaw();
+  const bonk = raw.moves.moves.find((m) => m.id === 'bonk');
+  bonk.power = null;
+  assert.deepEqual(validate(raw), []);
+  bonk.power = 0;
+  assert.deepEqual(validate(raw), []);
+  delete bonk.power;
+  assert.ok(validate(raw).includes('moves.json: move "bonk" is an attack but has no "power" (use null if its damage works differently)'), validate(raw).join('\n'));
+  // Status moves may leave power out.
+  const raw2 = readFixtureRaw();
+  delete raw2.moves.moves.find((m) => m.id === 'scowl').power;
+  assert.deepEqual(validate(raw2), []);
+});
+
+test('high critical-hit chance is supported as an effect or as a flag, and is described once', () => {
+  assert.ok(!UNSUPPORTED.effects.includes('highCrit'));
+  assert.ok(UNSUPPORTED.effects.includes('alwaysCrit'));
+  assert.equal(isSupportedEffect({ type: 'highCrit' }), true);
+  assert.equal(isSupportedEffect({ type: 'alwaysCrit' }), false);
+  const base = { category: 'physical', power: 70 };
+  assert.equal(describeMove({ ...base, effects: [{ type: 'highCrit' }] }), 'High critical-hit chance');
+  assert.equal(describeMove({ ...base, highCrit: true }), 'High critical-hit chance');
+  assert.equal(describeMove({ ...base, highCrit: true, effects: [{ type: 'highCrit' }] }), 'High critical-hit chance');
+  assert.equal(hasHighCrit({ ...base, effects: [{ type: 'highCrit' }] }), true);
+  assert.equal(hasHighCrit(base), false);
+  const data = loadFixtureData();
+  assert.equal(describeMove(data.moveById['wail']), 'High critical-hit chance. Special effect (not in battle yet)');
+  // Every shipped move written with the highCrit effect is described as such.
+  for (const m of loadTestData().moves.filter((x) => (x.effects || []).some((e) => e.type === 'highCrit'))) {
+    assert.match(describeMove(m), /^High critical-hit chance|\. High critical-hit chance/, m.id);
+    assert.equal(describeMove(m).split('High critical-hit chance').length, 2, m.id);
+  }
 });
 
 test('attacks with no power are valid but are not counted as attacks', () => {

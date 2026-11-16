@@ -5,7 +5,7 @@ export const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 export const STAGE_STATS = ['atk', 'def', 'spa', 'spd', 'spe'];
 export const STATUSES = ['burn', 'poison', 'paralysis', 'sleep'];
 export const CATEGORIES = ['physical', 'special', 'status'];
-const EFFECT_TYPES = ['status', 'stage', 'recoil', 'drain', 'heal', 'flinch'];
+const EFFECT_TYPES = ['status', 'stage', 'recoil', 'drain', 'heal', 'flinch', 'highCrit'];
 
 // NOT YET SUPPORTED IN BATTLE.
 // The move list uses these names, but the battle engine does not run them yet. The checker
@@ -14,9 +14,11 @@ const EFFECT_TYPES = ['status', 'stage', 'recoil', 'drain', 'heal', 'flinch'];
 // They are being added in follow-up tickets #9 to #14. When a mechanic is implemented, move its
 // name out of this list and into EFFECT_TYPES / STATUSES / STAGE_STATS above.
 // Any name that is in neither list is still reported as a mistake.
+// "highCrit" is supported: as an effect ({"type": "highCrit"}) or as the move-level flag
+// ("highCrit": true) it raises the critical-hit chance. "alwaysCrit" is not supported yet.
 export const UNSUPPORTED = {
   effects: [
-    'ohko', 'trap', 'twoTurn', 'recharge', 'weather', 'terrain', 'multiHit', 'highCrit',
+    'ohko', 'trap', 'twoTurn', 'recharge', 'weather', 'terrain', 'multiHit',
     'confuse', 'switchOut', 'protect', 'selfFaint', 'hazard', 'screen', 'forceSwitch', 'alwaysCrit',
   ],
   statuses: ['freeze', 'badly-poisoned', 'random'],
@@ -30,6 +32,11 @@ export function isSupportedEffect(e) {
   if (e.type === 'stage') return STAGE_STATS.includes(e.stat);
   return true;
 }
+
+// True when a move has a higher critical-hit chance, written either as the move-level flag
+// "highCrit": true or as the effect {"type": "highCrit"}.
+export const hasHighCrit = (move) =>
+  !!move && (move.highCrit === true || (move.effects || []).some((e) => e.type === 'highCrit'));
 
 // The effects of a move that the battle engine runs (unsupported ones are left out).
 export const supportedEffects = (move) => (move.effects || []).filter(isSupportedEffect);
@@ -133,6 +140,7 @@ export function validate(raw) {
     if (!m.name) errors.push(`${at} has no name`);
     if (!typeIds.has(m.type)) errors.push(`${at} has unknown type "${m.type}"`);
     if (!CATEGORIES.includes(m.category)) errors.push(`${at} has unknown category "${m.category}"`);
+    if (['physical', 'special'].includes(m.category) && !('power' in m)) errors.push(`${at} is an attack but has no "power" (use null if its damage works differently)`);
     if (m.power != null && !(typeof m.power === 'number' && m.power >= 0)) errors.push(`${at} power must be a number of 0 or more, or null for no damage`);
     if (m.accuracy != null && !(m.accuracy > 0 && m.accuracy <= 100)) errors.push(`${at} accuracy must be 1-100 or null`);
     for (const e of m.effects || []) {
@@ -200,7 +208,7 @@ export function effectiveness(data, attackType, defenderTypes) {
 export function describeMove(move) {
   const parts = [];
   if (move.priority > 0) parts.push('Strikes first');
-  if (move.highCrit) parts.push('High critical-hit chance');
+  if (hasHighCrit(move)) parts.push('High critical-hit chance');
   const statNames = { atk: 'Attack', def: 'Defense', spa: 'Sp. Attack', spd: 'Sp. Defense', spe: 'Speed' };
   const statusVerb = { burn: 'burn', poison: 'poison', paralysis: 'paralyse', sleep: 'put to sleep' };
   let notYet = false;

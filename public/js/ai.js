@@ -20,6 +20,10 @@ function scoreMove(state, side, move) {
       if (!foe.status && !immune) score += foe.maxHp * 0.3 * chance * (move.category === 'status' ? acc : 1);
     }
     if (e.type === 'stage') {
+      // Only stage changes that help this side are worth anything: raising its own stats or
+      // lowering the foe's. Raising the foe's or lowering its own scores nothing.
+      const helps = e.target === 'self' ? e.stages > 0 : e.stages < 0;
+      if (!helps) continue;
       const target = e.target === 'self' ? me : foe;
       const current = target.stages[e.stat];
       const room = e.stages > 0 ? current < 2 : current > -2;

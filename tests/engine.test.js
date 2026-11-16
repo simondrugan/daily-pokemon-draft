@@ -56,7 +56,7 @@ test('a status move with only unsupported effects (or none) says "But nothing ha
   }
 });
 
-test('an attack with no power deals no damage, says nothing extra, and still runs its effects', () => {
+test('an attack with no power deals no damage and still runs its effects; with none it says "But nothing happened!"', () => {
   const state = createBattle(idle, [{ creature: 'sproutle', moves: ['hurl-gamble', 'echo-back'] }], 3);
   const me = activeOf(state, 'player');
   const foe = activeOf(state, 'foe');
@@ -71,15 +71,96 @@ test('an attack with no power deals no damage, says nothing extra, and still run
   assert.equal(foe.hp, foe.maxHp);
   assert.equal(me.stages.spe, 1, 'the supported stage effect still runs');
   assert.ok(!events.some((e) => e.t === 'hp'));
-  assert.ok(msgs(events).includes("Your Sproutle's Speed rose!"));
+  let text = msgs(events);
+  assert.equal(text[text.indexOf('Your Sproutle used Hurl Gamble!') + 1], "Your Sproutle's Speed rose!");
 
   events = runTurn(state, { type: 'move', index: 1 }, { type: 'move', index: 0 });
-  const text = msgs(events);
+  text = msgs(events);
   const used = text.indexOf('Your Sproutle used Echo Back!');
   assert.ok(used >= 0);
-  assert.ok(text[used + 1] === undefined || text[used + 1].startsWith("The foe's Copyclay used"), text.join(' / '));
+  assert.equal(text[used + 1], 'But nothing happened!', text.join(' / '));
   assert.equal(foe.hp, foe.maxHp);
   assert.ok(!events.some((e) => e.t === 'hp' || Number.isNaN(e.hp)));
+});
+
+test('"But nothing happened!" comes after the accuracy roll, so it draws the same random numbers', () => {
+  const state = createBattle(idle, [{ creature: 'sproutle', moves: ['echo-back'] }], 21);
+  runTurn(state, { type: 'move', index: 0 }, { type: 'move', index: 0 });
+  // Two speed-tie rolls, then Echo Back's accuracy roll. Mimic Dance never misses, so draws nothing.
+  const rng = makeRng(21);
+  for (let i = 0; i < 3; i++) rng.next();
+  assert.equal(state.rng.next(), rng.next());
+
+  // A miss still says "It missed!" rather than "But nothing happened!".
+  const shaky = { ...data.moveById['echo-back'], id: 'echo-shaky', accuracy: 1 };
+  const d = { ...idle, moveById: { ...idle.moveById, 'echo-shaky': shaky } };
+  const s2 = createBattle(d, [{ creature: 'sproutle', moves: ['echo-shaky'] }], 21);
+  const text = msgs(runTurn(s2, { type: 'move', index: 0 }, { type: 'move', index: 0 }));
+  assert.equal(text[text.indexOf('Your Sproutle used Echo Back!') + 1], 'It missed!');
+});
+
+test('an attack with no power against an immune type does not affect it and skips its effects', () => {
+  // Normal moves do not affect ghost types.
+  const ghostIdle = withChampion([{ creature: 'wispling', moves: ['mimic-dance'] }]);
+  for (const id of ['hurl-gamble', 'echo-back']) {
+    const state = createBattle(ghostIdle, [{ creature: 'sproutle', moves: [id] }], 5);
+    const me = activeOf(state, 'player');
+    const events = runTurn(state, { type: 'move', index: 0 }, { type: 'move', index: 0 });
+    const text = msgs(events);
+    const used = text.indexOf(`Your Sproutle used ${data.moveById[id].name}!`);
+    assert.equal(text[used + 1], "It doesn't affect Wispling...", text.join(' / '));
+    assert.equal(me.stages.spe, 0, 'effects are skipped');
+    // Same random numbers as before: two speed-tie rolls and one accuracy roll.
+    const rng = makeRng(5);
+    for (let i = 0; i < 3; i++) rng.next();
+    assert.equal(state.rng.next(), rng.next());
+  }
+});
+
+test('high critical-hit chance works as an effect exactly like the move-level flag', () => {
+  const b = data.settings.battle;
+  const wail = data.moveById['wail']; // written as {"type": "highCrit"}
+  const flag = { ...wail, effects: [], highCrit: true };
+  const plain = { ...wail, effects: [] };
+  let highCrits = 0;
+  for (let seed = 0; seed < 400; seed++) {
+    const run = (move) => {
+      const state = createBattle(data, [{ creature: 'wispling', moves: ['wail'] }], seed);
+      const r = calcDamage(state, activeOf(state, 'player'), activeOf(state, 'foe'), move);
+      return { ...r, next: state.rng.next() };
+    };
+    const a = run(wail);
+    assert.deepEqual(a, run(flag), `seed ${seed}`);
+    // The first draw is the crit roll, at the high percent; the same number of draws as a plain attack.
+    const rng = makeRng(seed);
+    assert.equal(a.crit, rng.next() * 100 < b.highCritChancePercent);
+    rng.next();
+    assert.equal(a.next, rng.next());
+    assert.equal(run(plain).next, a.next);
+    if (a.crit) highCrits++;
+  }
+  assert.ok(highCrits > 400 * (b.critChancePercent + 4) / 100, `${highCrits} crits`);
+});
+
+test('the AI values stage changes only when they help it', async () => {
+  const pick = (moves, seed) => {
+    const d = withChampion([{ creature: 'duoduck', moves }]);
+    const state = createBattle(d, [{ creature: 'sproutle', moves: ['bonk'] }], seed);
+    return chooseAction(state).index;
+  };
+  for (let seed = 0; seed < 50; seed++) {
+    // Goad raises the foe's Attack: worth no more than a move that does nothing.
+    assert.equal(pick(['mimic-dance', 'goad'], seed), 0, `seed ${seed}: chose Goad`);
+    // Scowl lowers the foe's Attack and Deep Focus raises its own Sp. Attack: both are worth using.
+    assert.equal(pick(['mimic-dance', 'scowl'], seed), 1, `seed ${seed}: skipped Scowl`);
+    assert.equal(pick(['mimic-dance', 'deep-focus'], seed), 1, `seed ${seed}: skipped Deep Focus`);
+  }
+  const selfDrop = { id: 'slump', name: 'Slump', type: 'normal', category: 'status', power: 0, accuracy: null,
+    effects: [{ type: 'stage', target: 'self', stat: 'def', stages: -1 }] };
+  const d = withChampion([{ creature: 'duoduck', moves: ['mimic-dance', 'slump'] }]);
+  const dd = { ...d, moveById: { ...d.moveById, slump: selfDrop } };
+  const state = createBattle(dd, [{ creature: 'sproutle', moves: ['bonk'] }], 1);
+  assert.equal(chooseAction(state).index, 0, 'lowering its own stat is worth nothing');
 });
 
 test('unsupported effects on an attack are skipped without drawing random numbers', () => {

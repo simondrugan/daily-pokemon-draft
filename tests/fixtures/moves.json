@@ -6,6 +6,7 @@
     {"id": "echo-back",     "name": "Echo Back",     "type": "normal",   "category": "physical", "power": null, "accuracy": 100},
     {"id": "flurry-taps",   "name": "Flurry Taps",   "type": "normal",   "category": "physical", "power": 18,   "accuracy": 85,  "effects": [{"type": "multiHit", "min": 2, "max": 5}]},
     {"id": "patch-up",      "name": "Patch Up",      "type": "normal",   "category": "status",   "power": 0,    "accuracy": null, "effects": [{"type": "heal", "percent": 50}]},
+    {"id": "goad",          "name": "Goad",          "type": "normal",   "category": "status",   "power": 0,    "accuracy": 100, "effects": [{"type": "stage", "target": "foe", "stat": "atk", "stages": 2}]},
     {"id": "scowl",         "name": "Scowl",         "type": "normal",   "category": "status",   "power": 0,    "accuracy": 100, "effects": [{"type": "stage", "target": "foe", "stat": "atk", "stages": -1}]},
     {"id": "mimic-dance",   "name": "Mimic Dance",   "type": "normal",   "category": "status",   "power": 0,    "accuracy": null},
     {"id": "fog-veil",      "name": "Fog Veil",      "type": "normal",   "category": "status",   "power": 0,    "accuracy": null, "effects": [{"type": "protect"}, {"type": "stage", "target": "self", "stat": "evasion", "stages": 1}]},

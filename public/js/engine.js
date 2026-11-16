@@ -1,7 +1,7 @@
 // Battle engine. Pure logic, no DOM: it takes actions and returns a list of events
 // that the UI plays back. All numbers come from data/settings.json.
 import { makeRng } from './rng.js';
-import { effectiveness, STAGE_STATS, isAttack, supportedEffects } from './data.js';
+import { effectiveness, STAGE_STATS, isAttack, supportedEffects, hasHighCrit } from './data.js';
 
 export const other = (side) => (side === 'player' ? 'foe' : 'player');
 
@@ -67,7 +67,7 @@ export function calcDamage(state, attacker, defender, move, opts = {}) {
   let atk = attacker.stats[physical ? 'atk' : 'spa'] * stageMult(attacker.stages[physical ? 'atk' : 'spa']);
   const def = defender.stats[physical ? 'def' : 'spd'] * stageMult(defender.stages[physical ? 'def' : 'spd']);
   if (physical && attacker.status === 'burn') atk *= 0.5;
-  const crit = opts.crit != null ? opts.crit : state.rng.chance(move.highCrit ? b.highCritChancePercent : b.critChancePercent);
+  const crit = opts.crit != null ? opts.crit : state.rng.chance(hasHighCrit(move) ? b.highCritChancePercent : b.critChancePercent);
   const roll = opts.roll != null ? opts.roll : (b.randomMinPercent + state.rng.next() * (100 - b.randomMinPercent)) / 100;
   let dmg = b.damageScale * move.power * (atk / def) + 2;
   if (attacker.types.includes(move.type)) dmg *= b.sameTypeBonus;
@@ -168,7 +168,9 @@ function doMove(state, side, move, events, movedFirst) {
   events.push({ t: 'msg', text: `${label(state, side)} used ${move.name}!` });
   // Effects that are not supported yet (see UNSUPPORTED in data.js) are skipped entirely.
   const effects = supportedEffects(move);
-  if (move.category === 'status' && !effects.length) {
+  // highCrit only changes the critical-hit chance of damage, so it does not count as "doing something".
+  const doesSomething = effects.some((e) => e.type !== 'highCrit');
+  if (move.category === 'status' && !doesSomething) {
     events.push({ t: 'msg', text: 'But nothing happened!' });
     return;
   }
@@ -182,13 +184,21 @@ function doMove(state, side, move, events, movedFirst) {
     return;
   }
 
+  // Any physical or special move, with or without power, does nothing to a type immune to it.
+  // This draws no random numbers (calcDamage returns before its rolls when immune).
+  if (move.category !== 'status' && effectiveness(state.data, move.type, foe.types) === 0) {
+    events.push({ t: 'msg', text: `It doesn't affect ${foe.name}...` });
+    return;
+  }
+  // An attack with no power and nothing else it can do yet.
+  if (!isAttack(move) && !doesSomething) {
+    events.push({ t: 'msg', text: 'But nothing happened!' });
+    return;
+  }
+
   let dealt = 0;
   if (isAttack(move)) {
     const { damage, eff, crit } = calcDamage(state, me, foe, move);
-    if (eff === 0) {
-      events.push({ t: 'msg', text: `It doesn't affect ${foe.name}...` });
-      return;
-    }
     dealt = Math.min(damage, foe.hp);
     events.push({ t: 'anim', side, kind: 'attack' });
     setHp(state, foeSide, events, foe.hp - damage);
