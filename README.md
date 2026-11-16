@@ -15,7 +15,7 @@ summit. A new draft every day, the same for everyone.
 npm start
 ```
 
-Then open http://localhost:8080. There is nothing to install.
+Then open http://localhost:8080. You need Node.js; there is nothing else to install.
 
 ```bash
 npm test
