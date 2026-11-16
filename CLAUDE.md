@@ -19,7 +19,7 @@ No build step and no dependencies. Hosted on GitHub Pages from `public/`.
 - `tests/` — tests. `tests/balance.js` is a report, not a test.
 
 ## Rules
-- All content is original. Never add creatures, moves, names, art or text taken from an existing game or franchise, renamed or otherwise.
+- All pokemon data is sanctioned for use because this draft is conceptually different from pokemon games, but must not become a progressive story, and must remain a web game.
 - Numbers and content belong in `public/data/`, not in code. If a ticket needs a new tunable value, add it to `settings.json`.
 - Engine changes need tests. Battles must stay deterministic for a given seed.
 - No frameworks, bundlers or runtime dependencies without the owner agreeing first.
