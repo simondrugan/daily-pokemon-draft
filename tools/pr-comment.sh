@@ -9,13 +9,12 @@
 set -euo pipefail
 
 pr=$1
-# Strip the indentation that YAML block text leaves at the start of each line.
-body=$(printf '%s\n' "$2" | sed -E 's/^[[:space:]]+//')
+body=$2
 only_update=${3:-}
 marker='<!-- pr-preview -->'
 
 id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$pr/comments" \
-  --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n 1)
+  --jq "[.[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\")))][0].id // empty" | sed -n 1p)
 
 if [ -n "$id" ]; then
   gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" >/dev/null

@@ -31,6 +31,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: test
     runs-on: ubuntu-latest
+    # Only the newest push to main is published, so an older run can't land last.
+    concurrency:
+      group: pages-main
+      cancel-in-progress: true
     permissions:
       contents: write
     steps:
@@ -44,14 +48,31 @@ jobs:
       github.event.action != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    # One preview job per PR at a time; a newer push or the close cancels an older run,
+    # so the preview always matches the latest push and is never re-created after closing.
+    concurrency:
+      group: pr-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     permissions:
       contents: write
       pull-requests: write
+      pages: read
     steps:
+      # The publishing scripts come from main; only the PR's public/ folder is published.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - run: bash tools/publish-pages.sh preview "$PR"
+          path: pr
+          persist-credentials: false
+      - name: Choose the publishing scripts
+        # Until this workflow is on main, main has no scripts yet, so use the PR's copy.
+        run: |
+          if [ -f tools/publish-pages.sh ] && [ -f tools/pr-comment.sh ]; then echo "TOOLS=tools" >> "$GITHUB_ENV"
+          else echo "TOOLS=pr/tools" >> "$GITHUB_ENV"; fi
+      - run: bash "$TOOLS/publish-pages.sh" preview "$PR" pr/public
         env:
           PR: ${{ github.event.pull_request.number }}
       - name: Comment with the preview link
@@ -67,7 +88,7 @@ jobs:
           **Preview:** $url
 
           Updated for ${SHA:0:7}. A new push can take a minute or two to appear; refresh if you see the old version."
-          bash tools/pr-comment.sh "$PR" "$body"
+          bash "$TOOLS/pr-comment.sh" "$PR" "$body"
 
   remove-preview:
     if: >-
@@ -75,6 +96,9 @@ jobs:
       github.event.action == 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    concurrency:
+      group: pr-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     permissions:
       contents: write
       pull-requests: write
