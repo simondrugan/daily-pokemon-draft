@@ -1,0 +1,10 @@
+{
+  "name": "Champion Test",
+  "intro": "A practice champion for the test suite.",
+  "statMultiplier": 1.05,
+  "team": [
+    {"creature": "cragmaw",  "moves": ["kiln-blast", "crag-slam", "grit-lob", "shell-up"]},
+    {"creature": "wispling", "moves": ["gloom-touch", "wail", "thought-poke", "fog-veil"]},
+    {"creature": "copyclay", "moves": ["mimic-dance", "fog-veil"]}
+  ]
+}

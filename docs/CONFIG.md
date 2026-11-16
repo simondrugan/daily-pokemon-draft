@@ -5,7 +5,7 @@ in GitHub's web editor (open the file, click the pencil, commit). The site redep
 a minute or two after a change reaches `main`.
 
 If you make a mistake, the tests fail and the deploy is blocked, with a message saying what is
-wrong (for example `creature "burlox" movePool lists unknown move "tackel"`). The game itself
+wrong (for example `creatures.json: creature "flopfin" movePool lists unknown move "tackel"`). The game itself
 shows the same message if it is loaded with broken data.
 
 ## types.json
@@ -13,10 +13,16 @@ shows the same message if it is loaded with broken data.
 `types` is the list of types: an `id` (lower case, used by the other files), a display `name`
 and a `color`.
 
-`chart` has one row per **attacking** type:
+`types` entry, as it appears in the file:
 
 ```json
-"fire": { "strong": ["plant", "frost"], "weak": ["fire", "water"], "none": [] }
+{"id": "fire", "name": "Fire", "color": "#EE8130"},
+```
+
+`chart` has one row per **attacking** type. This is the real `fire` row:
+
+```json
+"fire": {"strong": ["grass", "ice", "bug", "steel"], "weak": ["fire", "water", "rock", "dragon"], "none": []},
 ```
 
 - `strong` — defending types that take double damage.
@@ -26,53 +32,112 @@ and a `color`.
 Anything not listed takes normal damage. To add a type, add it to `types` and give it a row in
 `chart`, then mention it in other rows where it should be strong or weak.
 
+The file also has a `defense` section (for example
+`"fire": {"weakTo": ["water", "ground", "rock"], ...}`). The game does not read it: matchups in
+battle and in the draft come only from `chart`. If you change `chart`, the `defense` section
+does not need to match.
+
 ## moves.json
 
+Each move is one line. This is the real `flamethrower` line:
+
 ```json
-{ "id": "flame-jet", "name": "Flame Jet", "type": "fire", "category": "special",
-  "power": 85, "accuracy": 100, "effects": [{ "type": "status", "status": "burn", "chance": 10 }] }
+{"id": "flamethrower", "name": "Flamethrower", "type": "fire", "category": "special", "power": 90, "accuracy": 100, "pp": 15, "effects": [{"type": "status", "status": "burn", "chance": 10}], "description": "10% chance to burn the target.", "inLatestEdition": true},
+```
+
+And `slash`, which has a higher critical-hit chance:
+
+```json
+{"id": "slash", "name": "Slash", "type": "normal", "category": "physical", "power": 70, "accuracy": 100, "pp": 20, "effects": [{"type": "highCrit"}], "description": "High critical-hit ratio.", "inLatestEdition": true},
 ```
 
 | Field | Meaning |
 |---|---|
 | `category` | `physical` (uses Attack vs Defense), `special` (Sp. Attack vs Sp. Defense) or `status` (no damage) |
-| `power` | Damage strength. `0` for status moves |
+| `power` | Damage strength. `0` for status moves. Every `physical` or `special` move must have a `power`: a number, or `null` (or `0`) if its damage works differently, see "Attacks with no power" below |
 | `accuracy` | Percent chance to hit. `null` means it never misses |
-| `priority` | Optional. `1` makes the move go before normal moves |
-| `highCrit` | Optional. `true` gives a higher critical-hit chance |
+| `priority` | Optional, `0` if left out. Higher numbers go first: a move with `1` goes before normal moves, `2` before `1`, and so on. Negative numbers go last: a move with `-5` goes after normal moves. Speed only decides the order between moves with the same priority |
 | `effects` | Optional list, see below |
+| `pp`, `description`, `inLatestEdition` | Kept for reference. The game does not read them; the move list in the game writes its own description from `effects` |
+
+`highCrit: true` written on the move itself (outside `effects`) is also accepted and does the
+same as the `highCrit` effect below. Use one or the other; the file uses the effect.
 
 Effects:
 
 | Effect | Example | What it does |
 |---|---|---|
-| `status` | `{ "type": "status", "status": "burn", "chance": 10 }` | Gives the foe `burn`, `poison`, `paralysis` or `sleep` |
-| `stage` | `{ "type": "stage", "target": "self", "stat": "atk", "stages": 2 }` | Raises or lowers `atk`, `def`, `spa`, `spd` or `spe` on `self` or `foe` |
-| `recoil` | `{ "type": "recoil", "percent": 25 }` | User takes that share of the damage dealt |
-| `drain` | `{ "type": "drain", "percent": 50 }` | User heals that share of the damage dealt |
-| `heal` | `{ "type": "heal", "percent": 50 }` | User heals that share of its max HP |
-| `flinch` | `{ "type": "flinch", "chance": 20 }` | Foe loses its turn if it has not moved yet |
+| `status` | `{"type": "status", "status": "burn", "chance": 10}` | Gives the foe `burn`, `poison`, `paralysis` or `sleep` |
+| `stage` | `{"type": "stage", "target": "self", "stat": "atk", "stages": 2}` | Raises or lowers `atk`, `def`, `spa`, `spd` or `spe` on `self` or `foe` |
+| `recoil` | `{"type": "recoil", "percent": 25}` | User takes that share of the damage dealt |
+| `drain` | `{"type": "drain", "percent": 50}` | User heals that share of the damage dealt |
+| `heal` | `{"type": "heal", "percent": 50}` | User heals that share of its max HP |
+| `flinch` | `{"type": "flinch", "chance": 30}` | Foe loses its turn if it has not moved yet |
+| `highCrit` | `{"type": "highCrit"}` | Higher critical-hit chance (`highCritChancePercent` in settings.json instead of `critChancePercent`) |
 
 `chance` is a percent and can be left out for "always".
 
-## creatures.json
+These examples are taken from real moves: `blade-waltz` (stage), `body-ram` (recoil), `absorb`
+(drain), `dawn-glow` (heal), `bite` (flinch). A stage effect on `foe` with a negative number,
+like `growl`'s `{"type": "stage", "target": "foe", "stat": "atk", "stages": -1}`, lowers the
+foe's stat.
+
+### Attacks with no power
+
+Some attacks have `"power": null` because their damage works differently, for example:
 
 ```json
-{ "id": "kilnback", "name": "Kilnback", "types": ["fire", "stone"],
-  "stats": { "hp": 90, "atk": 80, "def": 120, "spa": 70, "spd": 80, "spe": 35 },
-  "movePool": ["ember", "flame-jet", "scorch", "rock-toss"] }
+{"id": "counter", "name": "Counter", "type": "fighting", "category": "physical", "power": null, "accuracy": 100, "pp": 20, "priority": -5, "description": "Deals back double the physical damage the user took this turn. Priority -5.", "inLatestEdition": true},
 ```
 
-One or two types. `movePool` is the list the draft rolls move sets from; it needs at least as
-many moves as `movesPerCreature` and at least one attack.
+These are allowed, but the `power` must be written out as `null`: leaving it out is reported as
+a mistake, so a forgotten number is caught. For now they deal no damage in battle, but any
+effects they have from the table above still happen. If they have none, the battle says "But
+nothing happened!" (after checking whether the move hit). Like any attack, they do nothing to a
+type that is immune to them ("It doesn't affect ..."). They do not count as an attack for the
+draft (see creatures.json below).
+
+### Effects that are not in battle yet
+
+The move list also uses some effect names that the battle does not run yet. The checker
+accepts them so the game still loads, but in a battle they are simply skipped. If a status
+move has only these effects (or no effects at all), the battle says "But nothing happened!".
+In the move list they are shown as "Special effect (not in battle yet)".
+
+| Kind | Names accepted but not in battle yet |
+|---|---|
+| Effect `type` | `ohko`, `trap`, `twoTurn`, `recharge`, `weather`, `terrain`, `multiHit`, `confuse`, `switchOut`, `protect`, `selfFaint`, `hazard`, `screen`, `forceSwitch`, `alwaysCrit` |
+| `status` | `freeze`, `badly-poisoned`, `random` |
+| `stage` stat | `accuracy`, `evasion` |
+
+These are being added one by one in later updates (tickets #9 to #14). Any other name that is
+not in either table is still reported as a mistake, so a typo such as `"burnn"` is caught.
+
+## creatures.json
+
+Each creature is one line. This is the real `flopfin` line:
+
+```json
+{"id": "flopfin", "dex": 129, "name": "Flopfin", "types": ["water"], "stats": {"hp": 20, "atk": 10, "def": 55, "spa": 15, "spd": 20, "spe": 80}, "movePoolGame": "Edition 9", "movePool": ["flail", "splash", "tackle"]},
+```
+
+One or two types. `dex` and `movePoolGame` are kept for reference; the game does not read them. `movePool` is the list the draft rolls move sets from. It needs at least one
+move.
+
+- If a creature has fewer moves than `movesPerCreature` (in settings.json), it simply gets its
+  whole move pool when drafted.
+- A creature needs at least one attack (a physical or special move with power above 0) to be
+  offered in the draft. A creature without one is still allowed in the file and can be used by
+  the champion, but players never see it in the draft. The checker counts only creatures that
+  have an attack when it checks there are enough for the draft.
 
 ## Creature icons
 
 Each creature's picture is a file in `public/icons/`, named after the creature's `id`
-(`public/icons/kilnback.svg`). To change one, replace that file with your own artwork.
+(`public/icons/flopfin.svg`). To change one, replace that file with your own artwork.
 
 - SVG is the default. To use a PNG, GIF or WebP instead, add the file and point the creature at
-  it in `creatures.json`: `"icon": "icons/kilnback.png"`.
+  it in `creatures.json`: `"icon": "icons/flopfin.png"`.
 - Square images work best. They are shown from 40 to 120 pixels wide, so 256×256 is plenty.
 - Draw the creature facing left. The game mirrors it for the player's side of the battle.
 - When you add a new creature, run `npm run icons` to create a placeholder picture for it. That

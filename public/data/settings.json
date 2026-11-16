@@ -23,8 +23,8 @@
   },
   "statusImmunity": {
     "burn": ["fire"],
-    "poison": ["venom", "metal"],
-    "paralysis": ["storm"],
+    "poison": ["poison", "steel"],
+    "paralysis": ["electric"],
     "sleep": []
   }
 }

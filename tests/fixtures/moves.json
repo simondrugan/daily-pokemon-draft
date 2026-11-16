@@ -1,0 +1,33 @@
+{
+  "moves": [
+    {"id": "bonk",          "name": "Bonk",          "type": "normal",   "category": "physical", "power": 40,   "accuracy": 100},
+    {"id": "dart-jab",      "name": "Dart Jab",      "type": "normal",   "category": "physical", "power": 40,   "accuracy": 100, "priority": 1},
+    {"id": "hurl-gamble",   "name": "Hurl Gamble",   "type": "normal",   "category": "physical", "power": null, "accuracy": 100, "effects": [{"type": "stage", "target": "self", "stat": "spe", "stages": 1}]},
+    {"id": "echo-back",     "name": "Echo Back",     "type": "normal",   "category": "physical", "power": null, "accuracy": 100},
+    {"id": "flurry-taps",   "name": "Flurry Taps",   "type": "normal",   "category": "physical", "power": 18,   "accuracy": 85,  "effects": [{"type": "multiHit", "min": 2, "max": 5}]},
+    {"id": "patch-up",      "name": "Patch Up",      "type": "normal",   "category": "status",   "power": 0,    "accuracy": null, "effects": [{"type": "heal", "percent": 50}]},
+    {"id": "goad",          "name": "Goad",          "type": "normal",   "category": "status",   "power": 0,    "accuracy": 100, "effects": [{"type": "stage", "target": "foe", "stat": "atk", "stages": 2}]},
+    {"id": "scowl",         "name": "Scowl",         "type": "normal",   "category": "status",   "power": 0,    "accuracy": 100, "effects": [{"type": "stage", "target": "foe", "stat": "atk", "stages": -1}]},
+    {"id": "mimic-dance",   "name": "Mimic Dance",   "type": "normal",   "category": "status",   "power": 0,    "accuracy": null},
+    {"id": "fog-veil",      "name": "Fog Veil",      "type": "normal",   "category": "status",   "power": 0,    "accuracy": null, "effects": [{"type": "protect"}, {"type": "stage", "target": "self", "stat": "evasion", "stages": 1}]},
+    {"id": "cinder-flick",  "name": "Cinder Flick",  "type": "fire",     "category": "special",  "power": 40,   "accuracy": 100, "effects": [{"type": "status", "status": "burn", "chance": 10}]},
+    {"id": "kiln-blast",    "name": "Kiln Blast",    "type": "fire",     "category": "special",  "power": 90,   "accuracy": 100, "effects": [{"type": "status", "status": "burn", "chance": 10}]},
+    {"id": "tide-pulse",    "name": "Tide Pulse",    "type": "water",    "category": "special",  "power": 60,   "accuracy": 100},
+    {"id": "reef-crash",    "name": "Reef Crash",    "type": "water",    "category": "physical", "power": 85,   "accuracy": 90},
+    {"id": "rime-spray",    "name": "Rime Spray",    "type": "water",    "category": "special",  "power": 50,   "accuracy": 100, "effects": [{"type": "status", "status": "freeze", "chance": 10}]},
+    {"id": "sap-bite",      "name": "Sap Bite",      "type": "grass",    "category": "physical", "power": 55,   "accuracy": 100, "effects": [{"type": "drain", "percent": 50}]},
+    {"id": "drowse-pollen", "name": "Drowse Pollen", "type": "grass",    "category": "status",   "power": 0,    "accuracy": 75,  "effects": [{"type": "status", "status": "sleep"}]},
+    {"id": "sour-sap",      "name": "Sour Sap",      "type": "grass",    "category": "status",   "power": 0,    "accuracy": 90,  "effects": [{"type": "status", "status": "poison"}]},
+    {"id": "volt-pulse",    "name": "Volt Pulse",    "type": "electric", "category": "special",  "power": 60,   "accuracy": 100},
+    {"id": "jolt-snap",     "name": "Jolt Snap",     "type": "electric", "category": "special",  "power": 40,   "accuracy": 100, "effects": [{"type": "status", "status": "paralysis", "chance": 10}]},
+    {"id": "buzz-net",      "name": "Buzz Net",      "type": "electric", "category": "status",   "power": 0,    "accuracy": 90,  "effects": [{"type": "status", "status": "paralysis"}]},
+    {"id": "prism-arc",     "name": "Prism Arc",     "type": "electric", "category": "special",  "power": 70,   "accuracy": 100, "effects": [{"type": "status", "status": "random", "options": ["burn", "paralysis", "freeze"], "chance": 20}]},
+    {"id": "grit-lob",      "name": "Grit Lob",      "type": "rock",     "category": "physical", "power": 50,   "accuracy": 100, "effects": [{"type": "flinch", "chance": 20}]},
+    {"id": "crag-slam",     "name": "Crag Slam",     "type": "rock",     "category": "physical", "power": 100,  "accuracy": 85,  "effects": [{"type": "recoil", "percent": 25}]},
+    {"id": "shell-up",      "name": "Shell Up",      "type": "rock",     "category": "status",   "power": 0,    "accuracy": null, "effects": [{"type": "stage", "target": "self", "stat": "def", "stages": 1}]},
+    {"id": "gloom-touch",   "name": "Gloom Touch",   "type": "ghost",    "category": "special",  "power": 60,   "accuracy": 100},
+    {"id": "wail",          "name": "Wail",          "type": "ghost",    "category": "special",  "power": 70,   "accuracy": 100, "effects": [{"type": "highCrit"}, {"type": "stage", "target": "foe", "stat": "accuracy", "stages": -1, "chance": 30}]},
+    {"id": "thought-poke",  "name": "Thought Poke",  "type": "psychic",  "category": "special",  "power": 50,   "accuracy": 100, "effects": [{"type": "stage", "target": "foe", "stat": "spd", "stages": -1, "chance": 10}]},
+    {"id": "deep-focus",    "name": "Deep Focus",    "type": "psychic",  "category": "status",   "power": 0,    "accuracy": null, "effects": [{"type": "stage", "target": "self", "stat": "spa", "stages": 2}]}
+  ]
+}

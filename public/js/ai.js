@@ -1,6 +1,6 @@
 // Decision making for the computer-controlled side.
 import { calcDamage, other, living } from './engine.js';
-import { effectiveness } from './data.js';
+import { effectiveness, isAttack, supportedEffects } from './data.js';
 
 function scoreMove(state, side, move) {
   const data = state.data;
@@ -8,18 +8,22 @@ function scoreMove(state, side, move) {
   const foe = state.sides[other(side)].team[state.sides[other(side)].active];
   const acc = (move.accuracy == null ? 100 : move.accuracy) / 100;
   let score = 0;
-  if (move.category !== 'status') {
+  if (isAttack(move)) {
     const { damage } = calcDamage(state, me, foe, move, { crit: false, roll: 0.92 });
     score = Math.min(damage, foe.hp) * acc;
     if (damage >= foe.hp) score += foe.maxHp * 0.5 + (move.priority > 0 ? foe.maxHp * 0.3 : 0);
   }
-  for (const e of move.effects || []) {
+  for (const e of supportedEffects(move)) {
     const chance = (e.chance == null ? 100 : e.chance) / 100;
     if (e.type === 'status') {
       const immune = (data.settings.statusImmunity[e.status] || []).some((t) => foe.types.includes(t));
       if (!foe.status && !immune) score += foe.maxHp * 0.3 * chance * (move.category === 'status' ? acc : 1);
     }
     if (e.type === 'stage') {
+      // Only stage changes that help this side are worth anything: raising its own stats or
+      // lowering the foe's. Raising the foe's or lowering its own scores nothing.
+      const helps = e.target === 'self' ? e.stages > 0 : e.stages < 0;
+      if (!helps) continue;
       const target = e.target === 'self' ? me : foe;
       const current = target.stages[e.stat];
       const room = e.stages > 0 ? current < 2 : current > -2;
@@ -52,7 +56,7 @@ export function chooseSwitch(state, side = 'foe') {
     const f = state.sides[side].team[i];
     const offence = Math.max(...f.moves.map((id) => {
       const mv = data.moveById[id];
-      return mv.category === 'status' ? 0 : effectiveness(data, mv.type, foe.types);
+      return isAttack(mv) ? effectiveness(data, mv.type, foe.types) : 0;
     }));
     const danger = Math.max(...foe.types.map((t) => effectiveness(data, t, f.types)));
     const score = offence - danger + f.hp / f.maxHp * 0.5;

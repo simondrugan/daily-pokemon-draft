@@ -5,7 +5,49 @@ export const STATS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 export const STAGE_STATS = ['atk', 'def', 'spa', 'spd', 'spe'];
 export const STATUSES = ['burn', 'poison', 'paralysis', 'sleep'];
 export const CATEGORIES = ['physical', 'special', 'status'];
-const EFFECT_TYPES = ['status', 'stage', 'recoil', 'drain', 'heal', 'flinch'];
+const EFFECT_TYPES = ['status', 'stage', 'recoil', 'drain', 'heal', 'flinch', 'highCrit'];
+
+// NOT YET SUPPORTED IN BATTLE.
+// The move list uses these names, but the battle engine does not run them yet. The checker
+// accepts them so the game loads; in battle they are skipped (no effect, no random roll), and
+// a status move made only of them says "But nothing happened!".
+// They are being added in follow-up tickets #9 to #14. When a mechanic is implemented, move its
+// name out of this list and into EFFECT_TYPES / STATUSES / STAGE_STATS above.
+// Any name that is in neither list is still reported as a mistake.
+// "highCrit" is supported: as an effect ({"type": "highCrit"}) or as the move-level flag
+// ("highCrit": true) it raises the critical-hit chance. "alwaysCrit" is not supported yet.
+export const UNSUPPORTED = {
+  effects: [
+    'ohko', 'trap', 'twoTurn', 'recharge', 'weather', 'terrain', 'multiHit',
+    'confuse', 'switchOut', 'protect', 'selfFaint', 'hazard', 'screen', 'forceSwitch', 'alwaysCrit',
+  ],
+  statuses: ['freeze', 'badly-poisoned', 'random'],
+  stats: ['accuracy', 'evasion'],
+};
+
+// True when the battle engine knows how to run this effect today.
+export function isSupportedEffect(e) {
+  if (!EFFECT_TYPES.includes(e.type)) return false;
+  if (e.type === 'status') return STATUSES.includes(e.status);
+  if (e.type === 'stage') return STAGE_STATS.includes(e.stat);
+  return true;
+}
+
+// True when a move has a higher critical-hit chance, written either as the move-level flag
+// "highCrit": true or as the effect {"type": "highCrit"}.
+export const hasHighCrit = (move) =>
+  !!move && (move.highCrit === true || (move.effects || []).some((e) => e.type === 'highCrit'));
+
+// The effects of a move that the battle engine runs (unsupported ones are left out).
+export const supportedEffects = (move) => (move.effects || []).filter(isSupportedEffect);
+
+// True when a move deals damage: it is physical or special and has power above 0.
+// Attacks with "power": null (or 0) are allowed but deal no damage.
+export const isAttack = (move) => !!move && move.category !== 'status' && move.power > 0;
+
+// A creature can be offered in the draft only if its move pool has at least one attack.
+export const canBeDrafted = (creature, moveById) =>
+  (creature.movePool || []).some((id) => isAttack(moveById[id]));
 
 export const FILES = ['types', 'moves', 'creatures', 'champion', 'settings'];
 
@@ -98,13 +140,14 @@ export function validate(raw) {
     if (!m.name) errors.push(`${at} has no name`);
     if (!typeIds.has(m.type)) errors.push(`${at} has unknown type "${m.type}"`);
     if (!CATEGORIES.includes(m.category)) errors.push(`${at} has unknown category "${m.category}"`);
-    if (m.category !== 'status' && !(m.power > 0)) errors.push(`${at} is an attack but has no power`);
+    if (['physical', 'special'].includes(m.category) && !('power' in m)) errors.push(`${at} is an attack but has no "power" (use null if its damage works differently)`);
+    if (m.power != null && !(typeof m.power === 'number' && m.power >= 0)) errors.push(`${at} power must be a number of 0 or more, or null for no damage`);
     if (m.accuracy != null && !(m.accuracy > 0 && m.accuracy <= 100)) errors.push(`${at} accuracy must be 1-100 or null`);
     for (const e of m.effects || []) {
-      if (!EFFECT_TYPES.includes(e.type)) errors.push(`${at} has unknown effect type "${e.type}"`);
-      if (e.type === 'status' && !STATUSES.includes(e.status)) errors.push(`${at} has unknown status "${e.status}"`);
+      if (!EFFECT_TYPES.includes(e.type) && !UNSUPPORTED.effects.includes(e.type)) errors.push(`${at} has unknown effect type "${e.type}"`);
+      if (e.type === 'status' && !STATUSES.includes(e.status) && !UNSUPPORTED.statuses.includes(e.status)) errors.push(`${at} has unknown status "${e.status}"`);
       if (e.type === 'stage') {
-        if (!STAGE_STATS.includes(e.stat)) errors.push(`${at} has unknown stat "${e.stat}"`);
+        if (!STAGE_STATS.includes(e.stat) && !UNSUPPORTED.stats.includes(e.stat)) errors.push(`${at} has unknown stat "${e.stat}"`);
         if (!['self', 'foe'].includes(e.target)) errors.push(`${at} stage effect needs target "self" or "foe"`);
         if (!Number.isInteger(e.stages) || e.stages === 0) errors.push(`${at} stage effect needs a non-zero whole number of stages`);
       }
@@ -123,14 +166,15 @@ export function validate(raw) {
     const pool = c.movePool || [];
     for (const m of pool) if (!moveIds.has(m)) errors.push(`${at} movePool lists unknown move "${m}"`);
     if (new Set(pool).size !== pool.length) errors.push(`${at} movePool lists a move twice`);
-    if (pool.length < (draft.movesPerCreature || 4)) errors.push(`${at} movePool has fewer moves than movesPerCreature`);
-    if (!pool.some((m) => moveMap[m] && moveMap[m].category !== 'status')) errors.push(`${at} has no attacking move in its movePool`);
+    if (!Array.isArray(c.movePool) || pool.length < 1) errors.push(`${at} movePool needs at least 1 move`);
   }
+  // Creatures with no attack are allowed, but they are left out of the draft.
+  const draftable = creatures.filter((c) => canBeDrafted(c, moveMap)).length;
 
   if (!(draft.rounds > 0 && draft.optionsPerRound > 0 && draft.movesPerCreature > 0)) {
     errors.push('settings.json: draft.rounds, draft.optionsPerRound and draft.movesPerCreature must be positive');
-  } else if (creatures.length < draft.rounds * draft.optionsPerRound) {
-    errors.push(`settings.json: the draft needs ${draft.rounds * draft.optionsPerRound} creatures but creatures.json only has ${creatures.length}`);
+  } else if (draftable < draft.rounds * draft.optionsPerRound) {
+    errors.push(`settings.json: the draft needs ${draft.rounds * draft.optionsPerRound} creatures with at least one attack, but creatures.json only has ${draftable}`);
   }
   for (const [status, list] of Object.entries(raw.settings.statusImmunity || {})) {
     if (!STATUSES.includes(status)) errors.push(`settings.json: statusImmunity has unknown status "${status}"`);
@@ -164,10 +208,15 @@ export function effectiveness(data, attackType, defenderTypes) {
 export function describeMove(move) {
   const parts = [];
   if (move.priority > 0) parts.push('Strikes first');
-  if (move.highCrit) parts.push('High critical-hit chance');
+  if (hasHighCrit(move)) parts.push('High critical-hit chance');
   const statNames = { atk: 'Attack', def: 'Defense', spa: 'Sp. Attack', spd: 'Sp. Defense', spe: 'Speed' };
   const statusVerb = { burn: 'burn', poison: 'poison', paralysis: 'paralyse', sleep: 'put to sleep' };
+  let notYet = false;
   for (const e of move.effects || []) {
+    if (!isSupportedEffect(e)) {
+      notYet = true;
+      continue;
+    }
     const chance = e.chance != null && e.chance < 100 ? `${e.chance}% chance to ` : '';
     const cap = (s) => (chance ? chance + s : s[0].toUpperCase() + s.slice(1));
     if (e.type === 'status') parts.push(cap(`${statusVerb[e.status]} the foe`));
@@ -182,5 +231,8 @@ export function describeMove(move) {
     if (e.type === 'heal') parts.push(`Restores ${e.percent}% of max HP`);
     if (e.type === 'flinch') parts.push(cap('make the foe flinch'));
   }
+  // An attack with no power (fixed or variable damage) deals nothing until #10 is built.
+  if (move.category !== 'status' && !isAttack(move)) parts.push('Damage not in battle yet');
+  if (notYet) parts.push('Special effect (not in battle yet)');
   return parts.join('. ');
 }

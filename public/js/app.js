@@ -1,5 +1,5 @@
 // User interface: home, draft, battle and result screens.
-import { loadData, effectiveness, describeMove, STATS } from './data.js';
+import { loadData, effectiveness, describeMove, isAttack, STATS } from './data.js';
 import { generateDraft, dailySeed, todayString, teamCoverage, defensiveProfile } from './draft.js';
 import { createBattle, runTurn, forceSwitch, activeOf, living } from './engine.js';
 import { chooseAction, chooseSwitch } from './ai.js';
@@ -42,11 +42,13 @@ const typeBadge = (id) => {
 };
 const typeBadges = (ids) => ids.map(typeBadge).join('');
 const effLabel = (m) => (m === 0 ? 'No effect' : m > 1 ? 'Super effective' : m < 1 ? 'Not very effective' : 'Neutral');
+// Fixed and variable damage moves have no power value yet.
+const powerText = (m) => (m.power > 0 ? m.power : '—');
 const effClass = (m) => (m === 0 ? 'eff-none' : m > 1 ? 'eff-strong' : m < 1 ? 'eff-weak' : 'eff-neutral');
 
 function moveRow(id) {
   const m = data.moveById[id];
-  const nums = m.category === 'status' ? 'Status' : `${m.category === 'physical' ? 'Physical' : 'Special'} · ${m.power} power`;
+  const nums = m.category === 'status' ? 'Status' : `${m.category === 'physical' ? 'Physical' : 'Special'} · ${powerText(m)} power`;
   const acc = m.accuracy == null ? 'never misses' : `${m.accuracy}% accuracy`;
   const extra = describeMove(m);
   return `<li class="move-row">${typeBadge(m.type)}<div><strong>${m.name}</strong><small>${nums} · ${acc}${extra ? ' · ' + extra : ''}</small></div></li>`;
@@ -335,8 +337,8 @@ function renderControls() {
   const moves = me.moves.map((id, i) => {
     const m = data.moveById[id];
     const eff = effectiveness(data, m.type, foe.types);
-    const hint = app.hints && m.category !== 'status' ? `<small class="eff ${effClass(eff)}">${effLabel(eff)}</small>` : '';
-    const info = m.category === 'status' ? 'Status' : `${m.power} pow`;
+    const hint = app.hints && isAttack(m) ? `<small class="eff ${effClass(eff)}">${effLabel(eff)}</small>` : '';
+    const info = m.category === 'status' ? 'Status' : `${powerText(m)} pow`;
     return `<button class="move-btn" data-i="${i}" style="--c:${data.typeById[m.type].color}" title="${describeMove(m)}">
       <b>${m.name}</b><span>${data.typeById[m.type].name} · ${info}${m.accuracy != null && m.accuracy < 100 ? ` · ${m.accuracy}%` : ''}</span>${hint}</button>`;
   }).join('');

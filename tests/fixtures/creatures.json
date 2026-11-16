@@ -1,0 +1,15 @@
+{
+  "creatures": [
+    {"id": "emberkit",  "name": "Emberkit",  "types": ["fire"],             "stats": {"hp": 60, "atk": 60, "def": 50, "spa": 75, "spd": 55, "spe": 80}, "movePool": ["cinder-flick", "kiln-blast", "bonk", "scowl", "dart-jab"]},
+    {"id": "cragmaw",   "name": "Cragmaw",   "types": ["fire", "rock"],     "stats": {"hp": 90, "atk": 80, "def": 110, "spa": 70, "spd": 75, "spe": 40}, "movePool": ["cinder-flick", "kiln-blast", "grit-lob", "crag-slam", "shell-up"]},
+    {"id": "puddlefin", "name": "Puddlefin", "types": ["water"],            "stats": {"hp": 70, "atk": 65, "def": 60, "spa": 80, "spd": 70, "spe": 70}, "movePool": ["tide-pulse", "volt-pulse", "rime-spray", "bonk", "patch-up"]},
+    {"id": "reefback",  "name": "Reefback",  "types": ["water", "rock"],    "stats": {"hp": 85, "atk": 95, "def": 100, "spa": 60, "spd": 70, "spe": 45}, "movePool": ["reef-crash", "tide-pulse", "grit-lob", "shell-up", "flurry-taps"]},
+    {"id": "sproutle",  "name": "Sproutle",  "types": ["grass"],            "stats": {"hp": 75, "atk": 70, "def": 70, "spa": 70, "spd": 70, "spe": 60}, "movePool": ["sap-bite", "drowse-pollen", "sour-sap", "bonk", "hurl-gamble"]},
+    {"id": "sparkit",   "name": "Sparkit",   "types": ["electric"],         "stats": {"hp": 55, "atk": 50, "def": 45, "spa": 90, "spd": 60, "spe": 100}, "movePool": ["volt-pulse", "jolt-snap", "buzz-net", "prism-arc", "dart-jab"]},
+    {"id": "wispling",  "name": "Wispling",  "types": ["ghost"],            "stats": {"hp": 55, "atk": 50, "def": 55, "spa": 95, "spd": 80, "spe": 90}, "movePool": ["gloom-touch", "wail", "fog-veil", "thought-poke", "scowl"]},
+    {"id": "mindmoth",  "name": "Mindmoth",  "types": ["psychic", "grass"], "stats": {"hp": 65, "atk": 45, "def": 60, "spa": 90, "spd": 85, "spe": 75}, "movePool": ["thought-poke", "deep-focus", "sap-bite", "sour-sap", "patch-up"]},
+    {"id": "pebblet",   "name": "Pebblet",   "types": ["rock"],             "stats": {"hp": 80, "atk": 90, "def": 115, "spa": 40, "spd": 55, "spe": 30}, "movePool": ["grit-lob", "crag-slam", "shell-up", "bonk", "echo-back"]},
+    {"id": "duoduck",   "name": "Duoduck",   "types": ["normal"],           "stats": {"hp": 70, "atk": 70, "def": 65, "spa": 55, "spd": 60, "spe": 75}, "movePool": ["bonk", "patch-up"]},
+    {"id": "copyclay",  "name": "Copyclay",  "types": ["psychic"],          "stats": {"hp": 50, "atk": 50, "def": 50, "spa": 50, "spd": 50, "spe": 50}, "movePool": ["mimic-dance", "fog-veil"]}
+  ]
+}
