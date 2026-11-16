@@ -26,7 +26,13 @@ No build step and no dependencies. Hosted on GitHub Pages from `public/`.
 - Check the page at phone width (390px) as well as desktop.
 
 ## Working a ticket
-See `docs/WORKFLOW.md`. In short: one ticket per branch and pull request, named `ticket/<issue-number>-<short-name>`; never push to `main` directly.
+Follow `docs/WORKFLOW.md` exactly: it defines what to pick up, the run procedure and the limits.
+In short: the `project-manager` agent chooses and plans, you call the other roles in the order
+its plan gives, `reviewer` checks the code, `project-manager` signs off, then you open one pull
+request from `ticket/<issue-number>-<short-name>`. Never push to `main` directly.
 
 ## Agents
-Role definitions live in `.claude/agents/`. Use `engine-dev` for rules and AI, `ui-dev` for interface work, `content-designer` for data files and balance, and `reviewer` to check a finished branch before the pull request is opened.
+Role definitions live in `.claude/agents/`: `project-manager` (planning and sign-off, no code),
+`engine-dev` (rules and AI), `ui-dev` (interface), `content-designer` (data files and balance)
+and `reviewer` (read-only code check). Agents cannot start other agents, so the session running
+the ticket is the one that calls each role.
