@@ -1,7 +1,7 @@
 // Battle engine. Pure logic, no DOM: it takes actions and returns a list of events
 // that the UI plays back. All numbers come from data/settings.json.
 import { makeRng } from './rng.js';
-import { effectiveness, STAGE_STATS } from './data.js';
+import { effectiveness, STAGE_STATS, isAttack, supportedEffects } from './data.js';
 
 export const other = (side) => (side === 'player' ? 'foe' : 'player');
 
@@ -61,7 +61,8 @@ export function calcDamage(state, attacker, defender, move, opts = {}) {
   const data = state.data;
   const b = data.settings.battle;
   const eff = effectiveness(data, move.type, defender.types);
-  if (move.category === 'status' || eff === 0) return { damage: 0, eff, crit: false };
+  // Status moves and attacks with no power (null or 0) deal no damage and draw no random numbers.
+  if (!isAttack(move) || eff === 0) return { damage: 0, eff, crit: false };
   const physical = move.category === 'physical';
   let atk = attacker.stats[physical ? 'atk' : 'spa'] * stageMult(attacker.stages[physical ? 'atk' : 'spa']);
   const def = defender.stats[physical ? 'def' : 'spd'] * stageMult(defender.stages[physical ? 'def' : 'spd']);
@@ -165,7 +166,13 @@ function doMove(state, side, move, events, movedFirst) {
   }
 
   events.push({ t: 'msg', text: `${label(state, side)} used ${move.name}!` });
-  const needsTarget = move.category !== 'status' || (move.effects || []).some((e) => e.type === 'status' || e.target === 'foe');
+  // Effects that are not supported yet (see UNSUPPORTED in data.js) are skipped entirely.
+  const effects = supportedEffects(move);
+  if (move.category === 'status' && !effects.length) {
+    events.push({ t: 'msg', text: 'But nothing happened!' });
+    return;
+  }
+  const needsTarget = move.category !== 'status' || effects.some((e) => e.type === 'status' || e.target === 'foe');
   if (needsTarget && foe.hp <= 0) {
     events.push({ t: 'msg', text: 'But there was no target!' });
     return;
@@ -176,7 +183,7 @@ function doMove(state, side, move, events, movedFirst) {
   }
 
   let dealt = 0;
-  if (move.category !== 'status') {
+  if (isAttack(move)) {
     const { damage, eff, crit } = calcDamage(state, me, foe, move);
     if (eff === 0) {
       events.push({ t: 'msg', text: `It doesn't affect ${foe.name}...` });
@@ -190,7 +197,7 @@ function doMove(state, side, move, events, movedFirst) {
     else if (eff < 1) events.push({ t: 'msg', text: "It's not very effective..." });
   }
 
-  for (const e of move.effects || []) {
+  for (const e of effects) {
     if (e.chance != null && e.chance < 100 && !state.rng.chance(e.chance)) continue;
     if (e.type === 'status') applyStatus(state, foeSide, e.status, events, move.category === 'status');
     else if (e.type === 'stage') applyStage(state, e.target === 'self' ? side : foeSide, e.stat, e.stages, events);

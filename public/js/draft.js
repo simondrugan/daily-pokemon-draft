@@ -1,6 +1,6 @@
 // Draft generation and team analysis.
 import { makeRng, hashString } from './rng.js';
-import { effectiveness } from './data.js';
+import { effectiveness, isAttack, canBeDrafted } from './data.js';
 
 export function todayString(date = new Date()) {
   return date.toISOString().slice(0, 10);
@@ -11,15 +11,16 @@ export function dailySeed(dateString = todayString()) {
 }
 
 // Picks a random move set for a creature from its move pool.
+// A pool with movesPerCreature moves or fewer gives the whole pool (attack first).
 export function rollMoves(data, creature, rng) {
   const { movesPerCreature, guaranteeSameTypeAttack } = data.settings.draft;
   const pool = rng.shuffle(creature.movePool);
-  const isAttack = (id) => data.moveById[id].category !== 'status';
+  const attack = (id) => isAttack(data.moveById[id]);
   const chosen = [];
   // Always include one attack, and prefer one that matches the creature's own type.
-  const sameType = pool.find((id) => isAttack(id) && creature.types.includes(data.moveById[id].type));
-  const first = (guaranteeSameTypeAttack && sameType) || pool.find(isAttack);
-  chosen.push(first);
+  const sameType = pool.find((id) => attack(id) && creature.types.includes(data.moveById[id].type));
+  const first = (guaranteeSameTypeAttack && sameType) || pool.find(attack);
+  if (first) chosen.push(first);
   for (const id of pool) {
     if (chosen.length >= movesPerCreature) break;
     if (!chosen.includes(id)) chosen.push(id);
@@ -28,10 +29,11 @@ export function rollMoves(data, creature, rng) {
 }
 
 // Returns an array of rounds; each round is a list of { creature, moves } options.
+// Only creatures with at least one attack in their move pool are offered.
 export function generateDraft(data, seed) {
   const rng = makeRng(seed);
   const { rounds, optionsPerRound } = data.settings.draft;
-  const order = rng.shuffle(data.creatures);
+  const order = rng.shuffle(data.creatures.filter((c) => canBeDrafted(c, data.moveById)));
   const out = [];
   for (let r = 0; r < rounds; r++) {
     const options = [];
@@ -69,7 +71,7 @@ export function teamCoverage(data, team) {
     const canHit = team.some((slot) =>
       slot.moves.some((id) => {
         const mv = data.moveById[id];
-        return mv.category !== 'status' && effectiveness(data, mv.type, [t.id]) > 1;
+        return isAttack(mv) && effectiveness(data, mv.type, [t.id]) > 1;
       })
     );
     return { type: t.id, weak, resist, canHit };

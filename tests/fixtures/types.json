@@ -1,0 +1,22 @@
+{
+  "types": [
+    {"id": "normal",   "name": "Normal",   "color": "#A8A77A"},
+    {"id": "fire",     "name": "Fire",     "color": "#EE8130"},
+    {"id": "water",    "name": "Water",    "color": "#6390F0"},
+    {"id": "grass",    "name": "Grass",    "color": "#7AC74C"},
+    {"id": "electric", "name": "Electric", "color": "#F7D02C"},
+    {"id": "rock",     "name": "Rock",     "color": "#B6A136"},
+    {"id": "ghost",    "name": "Ghost",    "color": "#735797"},
+    {"id": "psychic",  "name": "Psychic",  "color": "#F95587"}
+  ],
+  "chart": {
+    "normal":   {"strong": ["psychic"],        "weak": ["rock"],                   "none": ["ghost"]},
+    "fire":     {"strong": ["grass"],          "weak": ["fire", "water", "rock"],  "none": []},
+    "water":    {"strong": ["fire", "rock"],   "weak": ["water", "grass"],         "none": []},
+    "grass":    {"strong": ["water", "rock"],  "weak": ["fire", "grass"],          "none": []},
+    "electric": {"strong": ["water"],          "weak": ["electric", "grass"],      "none": ["rock"]},
+    "rock":     {"strong": ["fire", "electric"], "weak": ["rock"],                 "none": []},
+    "ghost":    {"strong": ["ghost", "psychic"], "weak": [],                       "none": ["normal"]},
+    "psychic":  {"strong": ["ghost"],          "weak": ["psychic"],                "none": []}
+  }
+}

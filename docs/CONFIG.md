@@ -36,7 +36,7 @@ Anything not listed takes normal damage. To add a type, add it to `types` and gi
 | Field | Meaning |
 |---|---|
 | `category` | `physical` (uses Attack vs Defense), `special` (Sp. Attack vs Sp. Defense) or `status` (no damage) |
-| `power` | Damage strength. `0` for status moves |
+| `power` | Damage strength. `0` for status moves. An attack can also have `null` (or `0`): see "Attacks with no power" below |
 | `accuracy` | Percent chance to hit. `null` means it never misses |
 | `priority` | Optional. `1` makes the move go before normal moves |
 | `highCrit` | Optional. `true` gives a higher critical-hit chance |
@@ -55,6 +55,29 @@ Effects:
 
 `chance` is a percent and can be left out for "always".
 
+### Attacks with no power
+
+Some attacks have `"power": null` because their damage works differently (for example a move
+that hits back harder after being hit). These are allowed. For now they deal no damage in
+battle, but any effects they have from the table above still happen. They do not count as an
+attack for the draft (see creatures.json below).
+
+### Effects that are not in battle yet
+
+The move list also uses some effect names that the battle does not run yet. The checker
+accepts them so the game still loads, but in a battle they are simply skipped. If a status
+move has only these effects (or no effects at all), the battle says "But nothing happened!".
+In the move list they are shown as "Special effect (not in battle yet)".
+
+| Kind | Names accepted but not in battle yet |
+|---|---|
+| Effect `type` | `ohko`, `trap`, `twoTurn`, `recharge`, `weather`, `terrain`, `multiHit`, `highCrit`, `confuse`, `switchOut`, `protect`, `selfFaint`, `hazard`, `screen`, `forceSwitch`, `alwaysCrit` |
+| `status` | `freeze`, `badly-poisoned`, `random` |
+| `stage` stat | `accuracy`, `evasion` |
+
+These are being added one by one in later updates (tickets #9 to #14). Any other name that is
+not in either table is still reported as a mistake, so a typo such as `"burnn"` is caught.
+
 ## creatures.json
 
 ```json
@@ -63,8 +86,15 @@ Effects:
   "movePool": ["ember", "flame-jet", "scorch", "rock-toss"] }
 ```
 
-One or two types. `movePool` is the list the draft rolls move sets from; it needs at least as
-many moves as `movesPerCreature` and at least one attack.
+One or two types. `movePool` is the list the draft rolls move sets from. It needs at least one
+move.
+
+- If a creature has fewer moves than `movesPerCreature` (in settings.json), it simply gets its
+  whole move pool when drafted.
+- A creature needs at least one attack (a physical or special move with power above 0) to be
+  offered in the draft. A creature without one is still allowed in the file and can be used by
+  the champion, but players never see it in the draft. The checker counts only creatures that
+  have an attack when it checks there are enough for the draft.
 
 ## Creature icons
 
