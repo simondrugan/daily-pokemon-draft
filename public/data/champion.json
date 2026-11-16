@@ -3,11 +3,11 @@
   "intro": "Sable has held the summit for years. Nobody has seen her lose.",
   "statMultiplier": 1.05,
   "team": [
-    { "creature": "galehawk",  "moves": ["dive-strike", "quick-lunge", "boulder-bash", "slipstream"] },
-    { "creature": "coilback",  "moves": ["bolt", "steel-slam", "static-field", "grit-blast"] },
-    { "creature": "dreamare",  "moves": ["psy-wave", "dusk-pulse", "lullaby", "focus"] },
-    { "creature": "glacibear", "moves": ["icefall", "rampage", "tidal-crash", "war-cry"] },
-    { "creature": "kilnback",  "moves": ["flame-jet", "boulder-bash", "scorch", "brace"] },
-    { "creature": "brinejaw",  "moves": ["tidal-crash", "bite", "riptide", "icefall"] }
+    { "creature": "budrake",  "moves": ["assist-boost", "belly-flop", "blade-waltz", "blossom-waltz"] },
+    { "creature": "thornrake",  "moves": ["assist-boost", "belly-flop", "blade-waltz", "blossom-waltz"] },
+    { "creature": "bloomgarth",  "moves": ["assist-boost", "belly-flop", "blade-waltz", "blossom-waltz"] },
+    { "creature": "cindrel", "moves": ["alloy-talon", "assist-boost", "belly-flop", "bite"] },
+    { "creature": "pyrovane",  "moves": ["alloy-talon", "assist-boost", "belly-flop", "bite"] },
+    { "creature": "infernyx",  "moves": ["alloy-talon", "assist-boost", "belly-flop", "bite"] }
   ]
 }
