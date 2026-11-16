@@ -1,0 +1,13 @@
+{
+  "name": "Champion Sable",
+  "intro": "Sable has held the summit for years. Nobody has seen her lose.",
+  "statMultiplier": 1.05,
+  "team": [
+    { "creature": "budrake",  "moves": ["assist-boost", "belly-flop", "blade-waltz", "blossom-waltz"] },
+    { "creature": "thornrake",  "moves": ["assist-boost", "belly-flop", "blade-waltz", "blossom-waltz"] },
+    { "creature": "bloomgarth",  "moves": ["assist-boost", "belly-flop", "blade-waltz", "blossom-waltz"] },
+    { "creature": "cindrel", "moves": ["alloy-talon", "assist-boost", "belly-flop", "bite"] },
+    { "creature": "pyrovane",  "moves": ["alloy-talon", "assist-boost", "belly-flop", "bite"] },
+    { "creature": "infernyx",  "moves": ["alloy-talon", "assist-boost", "belly-flop", "bite"] }
+  ]
+}
