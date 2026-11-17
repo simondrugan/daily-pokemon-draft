@@ -378,6 +378,15 @@ async function act(fn) {
       app.view[e.side].status[e.idx] = null;
       refreshField();
     } else if (e.t === 'switch') {
+      // A chosen switch carries `from`; show the withdrawal before the "sent out" message.
+      // Names never change in battle, so reading them from the final state is safe.
+      if ('from' in e) {
+        const s = app.battle.sides[e.side];
+        const name = s.team[e.from].name;
+        app.log.push(e.side === 'foe' ? `${s.name} withdrew ${name}!` : `${name}, come back!`);
+        renderLog();
+        if (ms) await sleep(ms);
+      }
       app.view[e.side].active = e.idx;
       refreshField();
     } else if (e.t === 'anim' && ms) {
