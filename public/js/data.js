@@ -200,8 +200,10 @@ const AI_FIELDS = {
 };
 
 function validateAi(ai) {
-  if (ai == null || typeof ai !== 'object' || Array.isArray(ai)) {
-    return [`settings.json: the "ai" section is missing; it needs ${Object.keys(AI_FIELDS).join(', ')}`];
+  const fields = Object.keys(AI_FIELDS).join(', ');
+  if (ai === undefined) return [`settings.json: the "ai" section is missing; it needs ${fields}`];
+  if (ai === null || typeof ai !== 'object' || Array.isArray(ai)) {
+    return [`settings.json: "ai" is ${JSON.stringify(ai)}, but it must be a section in { } with ${fields}`];
   }
   const errors = [];
   for (const [field, { check, need }] of Object.entries(AI_FIELDS)) {

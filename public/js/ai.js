@@ -72,7 +72,10 @@ function chooseVoluntarySwitch(state, side) {
     const score = matchupScore(data, state.sides[side].team[i], foe);
     if (score > bestScore) { bestScore = score; best = i; }
   }
-  if (best < 0 || bestScore < matchupScore(data, me, foe) + ai.switchMinMargin) return -1;
+  // The bench creature must be strictly better, and by at least the margin, so a margin of 0
+  // never swaps one creature for an equally placed one.
+  const current = matchupScore(data, me, foe);
+  if (best < 0 || bestScore <= current || bestScore < current + ai.switchMinMargin) return -1;
   return state.rng.next() < ai.switchEagerness / 100 ? best : -1;
 }
 

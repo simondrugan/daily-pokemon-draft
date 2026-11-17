@@ -49,7 +49,8 @@ test('the champion switches out of a bad matchup to a clearly better creature', 
   const action = chooseAction(state, 'foe');
   assert.deepEqual(action, { type: 'switch', index: 2 });
   const events = runTurn(state, rest, action, chooseSwitch);
-  assert.ok(events.some((e) => e.t === 'switch' && e.side === 'foe' && e.idx === 2));
+  assert.deepEqual(events.filter((e) => e.t === 'switch'), [{ t: 'switch', side: 'foe', idx: 2, from: 0 }],
+    'a chosen switch says which creature was withdrawn');
   assert.ok(events.some((e) => e.t === 'msg' && e.text === 'Champion Test sent out Sproutle!'));
   assert.equal(activeOf(state, 'foe').id, 'sproutle');
   assert.ok(!events.some((e) => e.t === 'msg' && e.text.startsWith("The foe's")), 'the switch uses up its turn');
@@ -80,6 +81,17 @@ test('the champion stays in when no benched creature is clearly better', () => {
   // With no margin required, the same bench is good enough.
   const state = createBattle(setup([ember, copy], { ...eager, switchMinMargin: 0 }), [playerPuddle], 1);
   assert.deepEqual(chooseAction(state, 'foe'), { type: 'switch', index: 1 });
+});
+
+test('with a margin of 0 the champion never swaps for an equally placed creature', () => {
+  // Two identical Emberkits score the same against water, so switching would gain nothing.
+  for (let seed = 0; seed < 30; seed++) {
+    const state = createBattle(setup([ember, ember], { ...eager, switchMinMargin: 0 }), [playerPuddle], seed);
+    assert.equal(matchupScore(data, state.sides.foe.team[0], activeOf(state, 'player')),
+      matchupScore(data, state.sides.foe.team[1], activeOf(state, 'player')));
+    assert.equal(chooseAction(state, 'foe').type, 'move', `seed ${seed}`);
+    assert.equal(state.rng.next(), drawsAfter(seed, 2), 'no extra random number drawn');
+  }
 });
 
 test('the champion never switches with eagerness 0, and draws the same random numbers as before', () => {
@@ -142,13 +154,23 @@ test('the turn a creature came in is tracked for faint replacements and player s
   const state = createBattle(setup([ember, sprout], eager), [playerPuddle, playerEmber], 1);
   assert.equal(turnsActive(state, 'player'), 0);
   runTurn(state, rest, rest, chooseSwitch);
-  runTurn(state, { type: 'switch', index: 1 }, rest, chooseSwitch);
+  const chosen = runTurn(state, { type: 'switch', index: 1 }, rest, chooseSwitch);
+  assert.deepEqual(chosen.filter((e) => e.t === 'switch'), [{ t: 'switch', side: 'player', idx: 1, from: 0 }]);
   assert.equal(state.sides.player.activeSince, 2);
   state.sides.foe.team[0].hp = 1;
   state.sides.foe.team[0].status = 'poison';
-  runTurn(state, rest, rest, chooseSwitch);
+  const fainted = runTurn(state, rest, rest, chooseSwitch);
   assert.equal(activeOf(state, 'foe').id, 'sproutle');
   assert.equal(state.sides.foe.activeSince, 3);
+  // A replacement for a fainted creature is not a withdrawal, so it has no "from".
+  assert.deepEqual(fainted.filter((e) => e.t === 'switch'), [{ t: 'switch', side: 'foe', idx: 1 }]);
+});
+
+test('a player replacement after a faint has no "from"', () => {
+  const state = createBattle(setup([puddle]), [playerEmber, playerPuddle], 1);
+  state.sides.player.team[0].hp = 0;
+  state.phase = 'forceSwitch';
+  assert.deepEqual(forceSwitch(state, 1).filter((e) => e.t === 'switch'), [{ t: 'switch', side: 'player', idx: 1 }]);
 });
 
 function playFull(d, seed) {
@@ -200,6 +222,14 @@ test('the ai section is required', () => {
   const errors = aiErrors((s) => delete s.ai);
   assert.equal(errors.length, 1);
   assert.match(errors[0], /settings\.json: the "ai" section is missing/);
+});
+
+test('an ai section that is not a section says what it must hold', () => {
+  for (const value of [[], 5, null, 'eager']) {
+    const errors = aiErrors((s) => (s.ai = value));
+    assert.equal(errors.length, 1, JSON.stringify(value));
+    assert.equal(errors[0], `settings.json: "ai" is ${JSON.stringify(value)}, but it must be a section in { } with switchEagerness, switchMinMargin, switchCooldownTurns`);
+  }
 });
 
 test('each ai field is required', () => {

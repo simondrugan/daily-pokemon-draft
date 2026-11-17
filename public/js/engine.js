@@ -132,14 +132,18 @@ function applyStage(state, side, stat, stages, events) {
   events.push({ t: 'msg', text: `${label(state, side)}'s ${STAT_NAMES[stat]} ${word}!` });
 }
 
+// A chosen switch (the outgoing creature still standing) adds `from`, the outgoing creature's
+// team index, to the switch event so the interface can show it being withdrawn. A replacement
+// for a fainted creature has no `from`.
 function doSwitch(state, side, idx, events) {
   const s = state.sides[side];
-  const old = s.team[s.active];
+  const from = s.active;
+  const old = s.team[from];
   old.stages = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
   s.active = idx;
   s.activeSince = state.turn;
   const f = s.team[idx];
-  events.push({ t: 'switch', side, idx });
+  events.push(old.hp > 0 ? { t: 'switch', side, idx, from } : { t: 'switch', side, idx });
   events.push({ t: 'msg', text: side === 'foe' ? `${s.name} sent out ${f.name}!` : `Go, ${f.name}!` });
 }
 

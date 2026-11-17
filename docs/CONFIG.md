@@ -178,6 +178,11 @@ never switch on their own.
 | `switchMinMargin` | number, 0 or more | How much better a benched creature's matchup must be than the active one's before switching is considered. Lower means it switches for small gains; higher means only for clear-cut ones, so switches become rarer. |
 | `switchCooldownTurns` | whole number, 0 or more | Full turns a creature must stay in before the champion can pull it, including the creature it leads with. Lower makes the champion more slippery (and harder); `0` lets it switch on the first turn. Higher makes switches rarer. |
 
+How `switchCooldownTurns` counts: the turn a creature comes in on does not count, whether it
+came in by a switch or after a faint. With `2`, a creature switched in on turn 3, or sent in
+when another fainted at the end of turn 3, stays in for turns 4 and 5 and can leave from turn 6
+at the earliest. The lead counts from the start of the battle, so it can leave from turn 3.
+
 How the matchup is scored, for `switchMinMargin`: take the creature's best attack against your
 creature (2 for double damage, 1 for normal, 0.5 for half, 0 for no effect; 4 or 0.25 when
 both of a two-type target's types count), subtract how hard your creature's types hit it (the
