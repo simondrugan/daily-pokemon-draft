@@ -1,5 +1,5 @@
 // Decision making for the computer-controlled side.
-import { calcDamage, other, living } from './engine.js';
+import { calcDamage, other, living, turnsActive } from './engine.js';
 import { effectiveness, isAttack, supportedEffects } from './data.js';
 
 function scoreMove(state, side, move) {
@@ -37,7 +37,50 @@ function scoreMove(state, side, move) {
   return score;
 }
 
+// How good a creature's matchup is against the opposing creature: its best attack's
+// effectiveness, minus how hard the opponent's types hit it, plus a little for remaining HP.
+export function matchupScore(data, f, foe) {
+  const offence = Math.max(...f.moves.map((id) => {
+    const mv = data.moveById[id];
+    return isAttack(mv) ? effectiveness(data, mv.type, foe.types) : 0;
+  }));
+  const danger = Math.max(...foe.types.map((t) => effectiveness(data, t, f.types)));
+  return offence - danger + f.hp / f.maxHp * 0.5;
+}
+
+// The champion's voluntary switch: returns the bench index to switch to, or -1 to stay in.
+// The random roll is drawn only when every other condition holds, so battles where switching
+// is never considered keep exactly the same random numbers.
+function chooseVoluntarySwitch(state, side) {
+  const data = state.data;
+  const ai = data.settings.ai;
+  if (!(ai.switchEagerness > 0)) return -1;
+  const me = state.sides[side].team[state.sides[side].active];
+  const foe = state.sides[other(side)].team[state.sides[other(side)].active];
+  if (me.hp <= 0 || foe.hp <= 0) return -1;
+  const weak = foe.types.some((t) => effectiveness(data, t, me.types) > 1);
+  if (!weak) return -1;
+  const canHitHard = me.moves.some((id) => {
+    const mv = data.moveById[id];
+    return isAttack(mv) && effectiveness(data, mv.type, foe.types) > 1;
+  });
+  if (canHitHard) return -1;
+  if (turnsActive(state, side) < ai.switchCooldownTurns) return -1;
+  let best = -1, bestScore = -Infinity;
+  for (const i of living(state, side)) {
+    if (i === state.sides[side].active) continue;
+    const score = matchupScore(data, state.sides[side].team[i], foe);
+    if (score > bestScore) { bestScore = score; best = i; }
+  }
+  if (best < 0 || bestScore < matchupScore(data, me, foe) + ai.switchMinMargin) return -1;
+  return state.rng.next() < ai.switchEagerness / 100 ? best : -1;
+}
+
 export function chooseAction(state, side = 'foe') {
+  if (side === 'foe') {
+    const index = chooseVoluntarySwitch(state, side);
+    if (index >= 0) return { type: 'switch', index };
+  }
   const me = state.sides[side].team[state.sides[side].active];
   let best = 0, bestScore = -1;
   me.moves.forEach((id, i) => {
@@ -49,17 +92,10 @@ export function chooseAction(state, side = 'foe') {
 
 // Picks the living team member with the best matchup against the opposing active creature.
 export function chooseSwitch(state, side = 'foe') {
-  const data = state.data;
   const foe = state.sides[other(side)].team[state.sides[other(side)].active];
   let best = -1, bestScore = -Infinity;
   for (const i of living(state, side)) {
-    const f = state.sides[side].team[i];
-    const offence = Math.max(...f.moves.map((id) => {
-      const mv = data.moveById[id];
-      return isAttack(mv) ? effectiveness(data, mv.type, foe.types) : 0;
-    }));
-    const danger = Math.max(...foe.types.map((t) => effectiveness(data, t, f.types)));
-    const score = offence - danger + f.hp / f.maxHp * 0.5;
+    const score = matchupScore(state.data, state.sides[side].team[i], foe);
     if (score > bestScore) { bestScore = score; best = i; }
   }
   return best;

@@ -176,6 +176,7 @@ export function validate(raw) {
   } else if (draftable < draft.rounds * draft.optionsPerRound) {
     errors.push(`settings.json: the draft needs ${draft.rounds * draft.optionsPerRound} creatures with at least one attack, but creatures.json only has ${draftable}`);
   }
+  errors.push(...validateAi(raw.settings.ai));
   for (const [status, list] of Object.entries(raw.settings.statusImmunity || {})) {
     if (!STATUSES.includes(status)) errors.push(`settings.json: statusImmunity has unknown status "${status}"`);
     for (const t of list) if (!typeIds.has(t)) errors.push(`settings.json: statusImmunity.${status} lists unknown type "${t}"`);
@@ -187,6 +188,26 @@ export function validate(raw) {
     if (!creatureIds.has(slot.creature)) errors.push(`champion.json: unknown creature "${slot.creature}"`);
     if (!slot.moves || !slot.moves.length) errors.push(`champion.json: "${slot.creature}" has no moves`);
     for (const m of slot.moves || []) if (!moveIds.has(m)) errors.push(`champion.json: "${slot.creature}" has unknown move "${m}"`);
+  }
+  return errors;
+}
+
+// The "ai" section of settings.json: how readily the champion switches out of a bad matchup.
+const AI_FIELDS = {
+  switchEagerness: { check: (v) => v >= 0 && v <= 100, need: 'a percent from 0 to 100 (0 turns switching off)' },
+  switchMinMargin: { check: (v) => v >= 0, need: 'a number of 0 or more' },
+  switchCooldownTurns: { check: (v) => Number.isInteger(v) && v >= 0, need: 'a whole number of turns, 0 or more' },
+};
+
+function validateAi(ai) {
+  if (ai == null || typeof ai !== 'object' || Array.isArray(ai)) {
+    return [`settings.json: the "ai" section is missing; it needs ${Object.keys(AI_FIELDS).join(', ')}`];
+  }
+  const errors = [];
+  for (const [field, { check, need }] of Object.entries(AI_FIELDS)) {
+    const v = ai[field];
+    if (v === undefined) errors.push(`settings.json: ai.${field} is missing; it must be ${need}`);
+    else if (typeof v !== 'number' || !Number.isFinite(v) || !check(v)) errors.push(`settings.json: ai.${field} is ${JSON.stringify(v)}, but it must be ${need}`);
   }
   return errors;
 }

@@ -41,14 +41,17 @@ export function createBattle(data, playerTeam, seed) {
     phase: 'choose', // 'choose' | 'forceSwitch' | 'over'
     winner: null,
     sides: {
-      player: { name: 'You', active: 0, team: playerTeam.map((s) => makeFighter(data, s)) },
-      foe: { name: champ.name, active: 0, team: champ.team.map((s) => makeFighter(data, s, champ.statMultiplier || 1)) },
+      // activeSince is the turn number on which the active creature came in (0 for the lead).
+      player: { name: 'You', active: 0, activeSince: 0, team: playerTeam.map((s) => makeFighter(data, s)) },
+      foe: { name: champ.name, active: 0, activeSince: 0, team: champ.team.map((s) => makeFighter(data, s, champ.statMultiplier || 1)) },
     },
   };
 }
 
 export const stageMult = (n) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
 export const activeOf = (state, side) => state.sides[side].team[state.sides[side].active];
+// How many full turns the side's active creature has been in battle before the coming turn.
+export const turnsActive = (state, side) => state.turn - state.sides[side].activeSince;
 export const living = (state, side) =>
   state.sides[side].team.map((f, i) => (f.hp > 0 ? i : -1)).filter((i) => i >= 0);
 
@@ -134,6 +137,7 @@ function doSwitch(state, side, idx, events) {
   const old = s.team[s.active];
   old.stages = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
   s.active = idx;
+  s.activeSince = state.turn;
   const f = s.team[idx];
   events.push({ t: 'switch', side, idx });
   events.push({ t: 'msg', text: side === 'foe' ? `${s.name} sent out ${f.name}!` : `Go, ${f.name}!` });

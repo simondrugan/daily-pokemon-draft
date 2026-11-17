@@ -21,6 +21,11 @@
     "sleepMinTurns": 1,
     "sleepMaxTurns": 3
   },
+  "ai": {
+    "switchEagerness": 60,
+    "switchMinMargin": 1,
+    "switchCooldownTurns": 2
+  },
   "statusImmunity": {
     "burn": ["fire"],
     "poison": ["poison", "steel"],
