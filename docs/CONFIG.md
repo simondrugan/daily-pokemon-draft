@@ -153,7 +153,42 @@ all of the champion's stats: `1.0` is an even fight, `1.1` is hard.
 - `draft` — number of rounds, options per round, moves per creature, and whether every drafted
   creature is guaranteed an attack of its own type.
 - `battle` — the damage formula's constants, critical-hit chances, and status effect strength.
+- `ai` — when the champion switches out of a bad matchup, see below.
 - `statusImmunity` — which types cannot be given which status.
+
+### ai
+
+The champion can pull its active creature out when it is losing the type matchup. It only
+considers this when all of these hold: its creature is weak to your creature's type, it has no
+attack that is strong against yours, it has been in for at least `switchCooldownTurns` turns,
+and it has another creature still standing whose matchup is clearly better. Your own creatures
+never switch on their own.
+
+```json
+"ai": {
+  "switchEagerness": 60,
+  "switchMinMargin": 1,
+  "switchCooldownTurns": 2
+},
+```
+
+| Field | Allowed | What it does |
+|---|---|---|
+| `switchEagerness` | number from 0 to 100 | Percent chance the champion actually switches once a switch is worth it. Higher makes the champion switch more reliably and play a little harder. `0` turns switching off completely (battles then play out exactly as before switching existed). |
+| `switchMinMargin` | number, 0 or more | How much better a benched creature's matchup must be than the active one's before switching is considered. Lower means it switches for small gains; higher means only for clear-cut ones, so switches become rarer. |
+| `switchCooldownTurns` | whole number, 0 or more | Full turns a creature must stay in before the champion can pull it, including the creature it leads with. Lower makes the champion more slippery (and harder); `0` lets it switch on the first turn. Higher makes switches rarer. |
+
+How the matchup is scored, for `switchMinMargin`: take the creature's best attack against your
+creature (2 for double damage, 1 for normal, 0.5 for half, 0 for no effect; 4 or 0.25 when
+both of a two-type target's types count), subtract how hard your creature's types hit it (the
+worst one, same scale), and add half its remaining HP share. A
+full-HP creature with a double-damage attack that takes half damage scores 2 − 0.5 + 0.5 = 2; a
+full-HP creature that takes double damage and only has half-damage attacks scores
+0.5 − 2 + 0.5 = −1. So a margin of `1` means "at least one step better".
+
+With the shipped values (60, 1, 2) the champion switches in about half of all battles, usually
+once. Each value only moves `npm run balance` by a few points, so it is a feel setting more than
+a difficulty dial; use `statMultiplier` in champion.json for difficulty.
 
 ## Checking balance
 
