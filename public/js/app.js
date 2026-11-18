@@ -10,7 +10,7 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const appEl = $('#app');
 const STAT_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
 const ZERO_STAGES = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
-const STATUS_NAMES = { burn: 'Burned', poison: 'Poisoned', paralysis: 'Paralyzed', sleep: 'Asleep' };
+const STATUS_NAMES = { burn: 'Burned', poison: 'Poisoned', paralysis: 'Paralysed', sleep: 'Asleep' };
 const STATUS_LABELS = { burn: 'BRN', poison: 'PSN', paralysis: 'PAR', sleep: 'SLP' };
 const SPEEDS = [
   { id: '1', label: '1×', ms: 750 },
@@ -287,9 +287,17 @@ function renderBattle() {
   };
   appEl.querySelectorAll('.fighter').forEach((el) => {
     el.onclick = () => openDetails(el.dataset.side, el);
+    // Enter opens on keydown. Space opens on keyup, like a native button: opening on keydown
+    // moves focus to the close button, and the keyup would then "click" it shut.
+    let spaceDown = false;
     el.onkeydown = (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetails(el.dataset.side, el); }
+      if (e.key === 'Enter') { e.preventDefault(); openDetails(el.dataset.side, el); }
+      if (e.key === ' ') { e.preventDefault(); spaceDown = true; }
     };
+    el.onkeyup = (e) => {
+      if (e.key === ' ' && spaceDown) { e.preventDefault(); spaceDown = false; openDetails(el.dataset.side, el); }
+    };
+    el.onblur = () => { spaceDown = false; };
   });
   refreshField(true);
   renderLog();
