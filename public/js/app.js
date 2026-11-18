@@ -5,6 +5,7 @@ import { createBattle, runTurn, forceSwitch, activeOf, living } from './engine.j
 import { chooseAction, chooseSwitch } from './ai.js';
 import { iconHTML } from './sprite.js';
 import { hashString } from './rng.js';
+import { summarize } from './stats.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const appEl = $('#app');
@@ -22,7 +23,23 @@ const store = {
     try { const v = localStorage.getItem('summit:' + key); return v == null ? fallback : JSON.parse(v); } catch { return fallback; }
   },
   set(key, value) {
-    try { localStorage.setItem('summit:' + key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+    try { localStorage.setItem('summit:' + key, JSON.stringify(value)); return true; } catch { return false; }
+  },
+  // Every stored daily record as { 'YYYY-MM-DD': record }, or null if storage can't be read.
+  // An entry that isn't valid JSON counts as an unfinished attempt (a loss).
+  dailyRecords() {
+    try {
+      const prefix = 'summit:daily:';
+      const records = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(prefix)) continue;
+        let value = { started: true };
+        try { value = JSON.parse(localStorage.getItem(key)); } catch { /* unreadable entry */ }
+        records[key.slice(prefix.length)] = value;
+      }
+      return records;
+    } catch { return null; }
   },
 };
 
@@ -31,6 +48,8 @@ const app = {
   mode: 'daily', seed: 0, date: todayString(),
   draft: null, round: 0, team: [],
   battle: null, view: null, busy: false, showSwitch: false, log: [],
+  counted: false, // true while the battle in progress is today's first daily attempt
+  notCounted: null, // why the current battle doesn't count: 'played', 'storage', 'random' or null
   speed: store.get('speed', '1'), hints: store.get('hints', true),
 };
 
@@ -119,9 +138,25 @@ const helpHTML = () => `<h2>How to play</h2>
 
 // ---------- home ----------
 
+// Played / wins / streaks for daily drafts, or a short note when storage is unavailable.
+function statsPanelHTML(records) {
+  if (!records) return '<p class="muted small stats-note">Stats need browser storage.</p>';
+  const s = summarize(records, todayString());
+  const fig = (n, label) => `<div><b>${n}</b><span>${label}</span></div>`;
+  return `<div class="daily-stats" aria-label="Daily draft stats">${fig(s.played, 'Played')}${fig(s.wins, 'Wins')}${fig(s.currentStreak, 'Current streak')}${fig(s.bestStreak, 'Best streak')}</div>`;
+}
+
 function renderHome() {
-  const record = store.get('daily:' + app.date, null);
-  const done = record ? `<p class="muted">Today's result: ${record.won ? '🏆 Won' : '💀 Lost'} in ${record.turns} turns. You can replay it for practice.</p>` : '';
+  app.date = todayString();
+  const records = store.dailyRecords();
+  const record = records && records[app.date];
+  let done = '';
+  if (record && typeof record.won === 'boolean') {
+    const turns = Number.isInteger(record.turns) ? ` in ${record.turns} turns` : '';
+    done = `<p class="muted">Today's result: ${record.won ? '🏆 Won' : '💀 Lost'}${turns}. You can replay it for practice.</p>`;
+  } else if (record && record.started) {
+    done = `<p class="muted">Today's attempt was not finished, so it counts as a loss. You can replay it for practice.</p>`;
+  }
   appEl.innerHTML = `<section class="home">
     <h1>Draft six. Climb the summit.</h1>
     <p>Pick a team one creature at a time from random options with random move sets, then battle <b>${data.champion.name}</b>.</p>
@@ -131,6 +166,8 @@ function renderHome() {
       <button id="random">Random draft</button>
     </div>
     ${done}
+    <h2>Daily record</h2>
+    ${statsPanelHTML(records)}
     <h2>Champion's team</h2>
     <div class="scout">${scoutHTML()}</div>
   </section>`;
@@ -220,6 +257,19 @@ function renderTeamReview() {
 // ---------- battle ----------
 
 function startBattle() {
+  // Only the first daily battle of the day counts. Mark it as started now so that leaving
+  // or reloading mid-battle still counts as a loss; replays, rematches and random drafts don't count.
+  app.counted = false;
+  app.notCounted = 'random';
+  if (app.mode === 'daily') {
+    const records = store.dailyRecords();
+    if (!records) app.notCounted = 'storage';
+    else if (app.date in records) app.notCounted = 'played';
+    else {
+      app.counted = store.set('daily:' + app.date, { started: true });
+      app.notCounted = app.counted ? null : 'storage';
+    }
+  }
   app.battle = createBattle(data, app.team, hashString('battle:' + app.seed + ':' + Date.now()));
   const snap = (side) => ({
     active: 0,
@@ -361,6 +411,9 @@ async function act(fn) {
   app.busy = true;
   renderControls();
   const events = fn();
+  // Save today's result as soon as the engine decides the battle, before playback,
+  // so leaving or reloading before "See result" can't turn it into a loss.
+  if (app.battle.phase === 'over') saveDailyResult();
   for (const e of events) {
     const ms = speedMs();
     if (e.t === 'msg') {
@@ -393,19 +446,34 @@ async function act(fn) {
 
 // ---------- result ----------
 
+function saveDailyResult() {
+  if (!app.counted) return;
+  app.counted = false;
+  const record = store.get('daily:' + app.date, null);
+  if (record && typeof record.won === 'boolean') return; // never overwrite a finished day
+  if (!store.set('daily:' + app.date, { won: app.battle.winner === 'player', turns: app.battle.turn })) app.notCounted = 'storage';
+}
+
 function renderResult() {
   const b = app.battle;
   const won = b.winner === 'player';
   const mine = b.sides.player.team.map((f) => (f.hp > 0 ? '🟩' : '⬛')).join('');
   const theirs = b.sides.foe.team.map((f) => (f.hp > 0 ? '🟥' : '⬛')).join('');
-  if (app.mode === 'daily' && !store.get('daily:' + app.date, null)) {
-    store.set('daily:' + app.date, { won, turns: b.turn });
-  }
+  const NOTES = {
+    played: 'Only your first attempt at each daily draft counts toward these stats.',
+    random: 'Random drafts don’t count toward these stats.',
+    storage: 'This result couldn’t be saved: browser storage is unavailable.',
+  };
+  const statsNote = NOTES[app.notCounted] ? `<p class="muted small">${NOTES[app.notCounted]}</p>` : '';
+  const records = store.dailyRecords();
   const share = `Summit Draft ${app.mode === 'daily' ? app.date : '(random)'}\n${won ? '🏆 Beat' : '💀 Lost to'} ${data.champion.name} in ${b.turn} turns\nMe ${mine}\nVs ${theirs}`;
   appEl.innerHTML = `<section class="result">
     <h1>${won ? '🏆 You reached the summit!' : '💀 The summit holds.'}</h1>
     <p>${won ? `You beat ${data.champion.name}` : `${data.champion.name} won`} in ${b.turn} turns.</p>
     <pre class="share">${share}</pre>
+    <h2>Daily record</h2>
+    ${statsPanelHTML(records)}
+    ${records ? statsNote : ''}
     <div class="home-actions">
       <button class="primary" id="share">Copy result</button>
       <button id="rematch">Rematch with this team</button>
@@ -424,7 +492,8 @@ function renderResult() {
 // ---------- boot ----------
 
 $('#home-btn').onclick = () => {
-  if (app.battle && app.battle.phase !== 'over' && $('.battle') && !confirm('Leave this battle?')) return;
+  const leave = app.counted ? "Leave this battle? Today's daily attempt will count as a loss." : 'Leave this battle?';
+  if (app.battle && app.battle.phase !== 'over' && $('.battle') && !confirm(leave)) return;
   renderHome();
 };
 $('#chart-btn').onclick = () => data && openModal(typeChartHTML());
