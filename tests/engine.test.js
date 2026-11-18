@@ -171,13 +171,90 @@ test('unsupported effects on an attack are skipped without drawing random number
     const state = createBattle(d, [{ creature: 'puddlefin', moves: [moveId] }], 11);
     const log = [];
     for (let i = 0; i < 4 && state.phase === 'choose'; i++) log.push(runTurn(state, { type: 'move', index: 0 }, { type: 'move', index: 0 }));
-    return { log: JSON.stringify(log), next: state.rng.next(), foe: activeOf(state, 'foe') };
+    // The two copies have different ids, so compare 'move' events without the id.
+    const strip = (e) => (e.t === 'move' ? { ...e, move: '*' } : e);
+    return { log: JSON.stringify(log.map((events) => events.map(strip))), next: state.rng.next(), foe: activeOf(state, 'foe') };
   };
   const a = play(idle, 'rime-spray');
   const b = play(variant, 'rime-plain');
   assert.equal(a.log, b.log);
   assert.equal(a.next, b.next);
   assert.equal(a.foe.status, null);
+});
+
+// A move that always makes the foe flinch, for testing skipped turns.
+const flinchMove = { id: 'test-flinch', name: 'Test Flinch', type: 'normal', category: 'physical', power: 10, accuracy: null,
+  effects: [{ type: 'flinch' }] };
+const withMove = (d, move) => ({ ...d, moveById: { ...d.moveById, [move.id]: move } });
+const moveEvents = (events) => events.filter((e) => e.t === 'move');
+
+test('using a move emits a "move" event with side, active index and move id, just before "used"', () => {
+  const d = withChampion([{ creature: 'duoduck', moves: ['mimic-dance'] }, { creature: 'copyclay', moves: ['mimic-dance'] }]);
+  const state = createBattle(d, [{ creature: 'sproutle', moves: ['bonk'] }, { creature: 'wispling', moves: ['fog-veil', 'wail'] }], 4);
+  runTurn(state, { type: 'switch', index: 1 }, { type: 'move', index: 0 });
+  const events = runTurn(state, { type: 'move', index: 1 }, { type: 'move', index: 0 });
+  assert.deepEqual(moveEvents(events).sort((a, b) => a.side.localeCompare(b.side)), [
+    { t: 'move', side: 'foe', idx: 0, move: 'mimic-dance' },
+    { t: 'move', side: 'player', idx: 1, move: 'wail' },
+  ]);
+  for (const e of moveEvents(events)) {
+    const next = events[events.indexOf(e) + 1];
+    const f = state.sides[e.side].team[e.idx];
+    assert.equal(next.t, 'msg');
+    assert.match(next.text, new RegExp(`${f.name} used ${d.moveById[e.move].name}!$`));
+  }
+});
+
+test('a move that misses still emits a "move" event', () => {
+  const shaky = { ...data.moveById['bonk'], id: 'bonk-shaky', accuracy: 1 };
+  const state = createBattle(withMove(idle, shaky), [{ creature: 'sproutle', moves: ['bonk-shaky'] }], 21);
+  const events = runTurn(state, { type: 'move', index: 0 }, { type: 'move', index: 0 });
+  assert.ok(msgs(events).includes('It missed!'));
+  assert.deepEqual(moveEvents(events).find((e) => e.side === 'player'), { t: 'move', side: 'player', idx: 0, move: 'bonk-shaky' });
+});
+
+test('no "move" event when the creature flinches, is fully paralysed or is asleep', () => {
+  // Flinch: the fast foe always flinches the slow player.
+  const fast = withMove(withChampion([{ creature: 'sparkit', moves: ['test-flinch'] }]), flinchMove);
+  let state = createBattle(fast, [{ creature: 'pebblet', moves: ['bonk'] }], 2);
+  let events = runTurn(state, { type: 'move', index: 0 }, { type: 'move', index: 0 });
+  assert.ok(msgs(events).includes("Your Pebblet flinched and couldn't move!"));
+  assert.deepEqual(moveEvents(events), [{ t: 'move', side: 'foe', idx: 0, move: 'test-flinch' }]);
+
+  // Full paralysis, made certain through the setting.
+  const b = data.settings.battle;
+  const stuck = { ...idle, settings: { ...idle.settings, battle: { ...b, paralysisSkipChancePercent: 100 } } };
+  state = createBattle(stuck, [{ creature: 'sproutle', moves: ['bonk'] }], 3);
+  activeOf(state, 'player').status = 'paralysis';
+  events = runTurn(state, { type: 'move', index: 0 }, { type: 'move', index: 0 });
+  assert.ok(msgs(events).includes("Your Sproutle is paralysed! It can't move!"));
+  assert.ok(!moveEvents(events).some((e) => e.side === 'player'));
+
+  // Asleep.
+  state = createBattle(idle, [{ creature: 'sproutle', moves: ['bonk'] }], 3);
+  Object.assign(activeOf(state, 'player'), { status: 'sleep', sleepTurns: 2 });
+  events = runTurn(state, { type: 'move', index: 0 }, { type: 'move', index: 0 });
+  assert.ok(msgs(events).includes('Your Sproutle is fast asleep.'));
+  assert.ok(!moveEvents(events).some((e) => e.side === 'player'));
+});
+
+test('"move" events name a known move, match the "used" messages, and seeded battles end as before', () => {
+  // Winner, turns and next random number per seed, recorded from the engine before "move" events existed.
+  const before = [['foe', 22, 26423230], ['foe', 12, 303410126], ['foe', 15, 902601570], ['foe', 8, 984934699], ['foe', 10, 361782834]];
+  [1, 2, 3, 4, 5].forEach((seed, n) => {
+    const s = createBattle(data, team(data, seed), seed);
+    let i = 0;
+    while (s.phase !== 'over' && i < 300) {
+      if (s.phase === 'forceSwitch') { forceSwitch(s, living(s, 'player')[0]); continue; }
+      const events = runTurn(s, { type: 'move', index: i++ % activeOf(s, 'player').moves.length }, chooseAction(s), chooseSwitch);
+      for (const e of moveEvents(events)) {
+        assert.ok(s.sides[e.side].team[e.idx].moves.includes(e.move), JSON.stringify(e));
+        assert.equal(events[events.indexOf(e) + 1].t, 'msg');
+      }
+      assert.equal(moveEvents(events).length, msgs(events).filter((t) => / used .+!$/.test(t)).length);
+    }
+    assert.deepEqual([s.winner, s.turn, Math.floor(s.rng.next() * 1e9)], before[n], `seed ${seed}`);
+  });
 });
 
 test('the champion keeps its fixed moves, even a creature with no attack', () => {

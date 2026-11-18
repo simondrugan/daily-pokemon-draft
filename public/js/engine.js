@@ -165,6 +165,8 @@ function doMove(state, side, move, events, movedFirst) {
     return;
   }
 
+  // The move is now used (it counts even if it then misses or fails). Draws no random numbers.
+  events.push({ t: 'move', side, idx: state.sides[side].active, move: move.id });
   events.push({ t: 'msg', text: `${label(state, side)} used ${move.name}!` });
   // Effects that are not supported yet (see UNSUPPORTED in data.js) are skipped entirely.
   const effects = supportedEffects(move);

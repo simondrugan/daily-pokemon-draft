@@ -136,6 +136,12 @@ main { max-width: 1180px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
 .f-sprite.fainted { opacity: .15; transform: translateY(14px); }
 .f-sprite.lunge { animation: lunge .25s ease; }
 .fighter.foe .f-sprite.lunge { animation-name: lunge-foe; }
+.fighter { cursor: pointer; border-radius: 12px; -webkit-tap-highlight-color: transparent; }
+.fighter:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.fighter:hover .plate { border-color: var(--accent); }
+.f-info { color: var(--muted); font-size: .85rem; margin-left: auto; }
+.fighter .plate-top { justify-content: flex-start; }
+.plate-top .f-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @keyframes lunge { 50% { transform: translate(22px, -10px); } }
 @keyframes lunge-foe { 50% { transform: translate(-22px, 10px); } }
 
@@ -186,6 +192,14 @@ td.eff-none, .pill.eff-none { background: #05060a; color: var(--muted); }
 .pill { padding: 0 .4rem; border-radius: 5px; }
 .type-summaries { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: .6rem; }
 .type-summary { background: var(--panel-2); border-radius: 10px; padding: .5rem .6rem; }
+.modal-card:has(.details) { max-width: 560px; }
+.details { display: grid; gap: .5rem; }
+.details h2 { margin: 0 0 .25rem; font-size: 1.3rem; }
+.details h3 { margin: .4rem 0 0; font-size: .9rem; color: var(--muted); font-weight: 600; }
+.details p { margin: 0; }
+.details-owner { margin: 0 2.5rem 0 0; }
+.details-hp { font-size: .9rem; }
+.details .profile { border-top: 0; padding-top: 0; }
 .help li { margin-bottom: .5rem; }
 
 @media (max-width: 860px) {

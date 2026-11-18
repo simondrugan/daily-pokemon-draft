@@ -19,11 +19,12 @@ const data = buildData(readRaw());
 const TURN_LIMIT = 500;
 
 // Event types that act() in public/js/app.js plays back (its if/else chain on `e.t`).
-const PLAYED_EVENTS = new Set(['msg', 'hp', 'status', 'faint', 'switch', 'anim']);
+// 'stages' and 'move' update app.view for the creature details panel (ticket #3).
+const PLAYED_EVENTS = new Set(['msg', 'hp', 'status', 'faint', 'switch', 'anim', 'stages', 'move']);
 // Event types the engine emits that act() in public/js/app.js deliberately has no branch for:
-// 'stages' always comes with a msg describing the change, and the end of the battle is read
-// from state.phase/state.winner rather than from 'over'. Anything else is unknown and fails.
-const UNPLAYED_EVENTS = new Set(['stages', 'over']);
+// the end of the battle is read from state.phase/state.winner rather than from 'over'.
+// Anything else is unknown and fails.
+const UNPLAYED_EVENTS = new Set(['over']);
 
 const SEEDS = [
   0, 1, 2, 3, 7, 42, 99, 123, 777, 1000, 2024, 4242, 31337, 65535, 99991,
@@ -73,7 +74,9 @@ const describe = (state, side) => {
   return `${f.name} (${f.hp}/${f.maxHp} HP, moves: ${f.moves.join(', ')})`;
 };
 
-function checkEvents(events, where) {
+// 'move' events are checked against state.sides[side].team[idx]: idx is the team slot that was
+// active when it moved, so the check holds even if a switch-in followed later in the turn.
+function checkEvents(events, where, state) {
   for (const e of events) {
     assert.ok(PLAYED_EVENTS.has(e.t) || UNPLAYED_EVENTS.has(e.t), `${where}: unknown event type "${e.t}" ${JSON.stringify(e)}`);
     // JSON.stringify hides undefined and NaN, so check the values themselves.
@@ -85,6 +88,11 @@ function checkEvents(events, where) {
       assert.ok(!e.text.includes('undefined') && !e.text.includes('NaN'), `${where}: "${e.text}"`);
     }
     if (e.t === 'hp') assert.ok(Number.isInteger(e.hp), `${where}: hp ${e.hp}`);
+    if (e.t === 'move') {
+      assert.ok(['player', 'foe'].includes(e.side), `${where}: move event side ${e.side}`);
+      const f = state.sides[e.side].team[e.idx];
+      assert.ok(f && f.moves.includes(e.move), `${where}: ${e.side} creature ${e.idx} does not know move "${e.move}"`);
+    }
   }
 }
 
@@ -120,7 +128,7 @@ function playGame(seed, strategy, policy) {
       events = runTurn(state, action, chooseAction(state, 'foe'), (s) => chooseSwitch(s, 'foe'));
     }
     assert.ok(events.length > 0, `${where}: no events`);
-    checkEvents(events, where);
+    checkEvents(events, where, state);
     checkHp(state, where);
     log.push(events);
   }
@@ -181,7 +189,7 @@ test('every move offered in a draft can be used for one turn without throwing', 
           assert.doesNotThrow(() => {
             events = runTurn(state, { type: 'move', index }, chooseAction(state, 'foe'), (s) => chooseSwitch(s, 'foe'));
           }, where);
-          checkEvents(events, where);
+          checkEvents(events, where, state);
           checkHp(state, where);
         });
       }
