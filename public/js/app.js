@@ -26,7 +26,7 @@ const store = {
     try { localStorage.setItem('summit:' + key, JSON.stringify(value)); return true; } catch { return false; }
   },
   // Every stored daily record as { 'YYYY-MM-DD': record }, or null if storage can't be read.
-  // An entry that isn't valid JSON is kept as null so it still marks the day as taken.
+  // An entry that isn't valid JSON counts as an unfinished attempt (a loss).
   dailyRecords() {
     try {
       const prefix = 'summit:daily:';
@@ -34,7 +34,7 @@ const store = {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key || !key.startsWith(prefix)) continue;
-        let value = null;
+        let value = { started: true };
         try { value = JSON.parse(localStorage.getItem(key)); } catch { /* unreadable entry */ }
         records[key.slice(prefix.length)] = value;
       }
@@ -49,6 +49,7 @@ const app = {
   draft: null, round: 0, team: [],
   battle: null, view: null, busy: false, showSwitch: false, log: [],
   counted: false, // true while the battle in progress is today's first daily attempt
+  notCounted: null, // why the current battle doesn't count: 'played', 'storage', 'random' or null
   speed: store.get('speed', '1'), hints: store.get('hints', true),
 };
 
@@ -151,7 +152,8 @@ function renderHome() {
   const record = records && records[app.date];
   let done = '';
   if (record && typeof record.won === 'boolean') {
-    done = `<p class="muted">Today's result: ${record.won ? '🏆 Won' : '💀 Lost'} in ${record.turns} turns. You can replay it for practice.</p>`;
+    const turns = Number.isInteger(record.turns) ? ` in ${record.turns} turns` : '';
+    done = `<p class="muted">Today's result: ${record.won ? '🏆 Won' : '💀 Lost'}${turns}. You can replay it for practice.</p>`;
   } else if (record && record.started) {
     done = `<p class="muted">Today's attempt was not finished, so it counts as a loss. You can replay it for practice.</p>`;
   }
@@ -258,9 +260,15 @@ function startBattle() {
   // Only the first daily battle of the day counts. Mark it as started now so that leaving
   // or reloading mid-battle still counts as a loss; replays, rematches and random drafts don't count.
   app.counted = false;
+  app.notCounted = 'random';
   if (app.mode === 'daily') {
     const records = store.dailyRecords();
-    if (records && !(app.date in records)) app.counted = store.set('daily:' + app.date, { started: true });
+    if (!records) app.notCounted = 'storage';
+    else if (app.date in records) app.notCounted = 'played';
+    else {
+      app.counted = store.set('daily:' + app.date, { started: true });
+      app.notCounted = app.counted ? null : 'storage';
+    }
   }
   app.battle = createBattle(data, app.team, hashString('battle:' + app.seed + ':' + Date.now()));
   const snap = (side) => ({
@@ -403,6 +411,9 @@ async function act(fn) {
   app.busy = true;
   renderControls();
   const events = fn();
+  // Save today's result as soon as the engine decides the battle, before playback,
+  // so leaving or reloading before "See result" can't turn it into a loss.
+  if (app.battle.phase === 'over') saveDailyResult();
   for (const e of events) {
     const ms = speedMs();
     if (e.t === 'msg') {
@@ -435,19 +446,25 @@ async function act(fn) {
 
 // ---------- result ----------
 
+function saveDailyResult() {
+  if (!app.counted) return;
+  app.counted = false;
+  const record = store.get('daily:' + app.date, null);
+  if (record && typeof record.won === 'boolean') return; // never overwrite a finished day
+  if (!store.set('daily:' + app.date, { won: app.battle.winner === 'player', turns: app.battle.turn })) app.notCounted = 'storage';
+}
+
 function renderResult() {
   const b = app.battle;
   const won = b.winner === 'player';
   const mine = b.sides.player.team.map((f) => (f.hp > 0 ? '🟩' : '⬛')).join('');
   const theirs = b.sides.foe.team.map((f) => (f.hp > 0 ? '🟥' : '⬛')).join('');
-  let statsNote = '';
-  if (app.mode === 'daily' && app.counted) {
-    const record = store.get('daily:' + app.date, null);
-    if (!record || typeof record.won !== 'boolean') store.set('daily:' + app.date, { won, turns: b.turn });
-    app.counted = false;
-  } else {
-    statsNote = `<p class="muted small">${app.mode === 'daily' ? 'Only your first attempt at each daily draft counts' : 'Random drafts don’t count'} toward these stats.</p>`;
-  }
+  const NOTES = {
+    played: 'Only your first attempt at each daily draft counts toward these stats.',
+    random: 'Random drafts don’t count toward these stats.',
+    storage: 'This result couldn’t be saved: browser storage is unavailable.',
+  };
+  const statsNote = NOTES[app.notCounted] ? `<p class="muted small">${NOTES[app.notCounted]}</p>` : '';
   const records = store.dailyRecords();
   const share = `Summit Draft ${app.mode === 'daily' ? app.date : '(random)'}\n${won ? '🏆 Beat' : '💀 Lost to'} ${data.champion.name} in ${b.turn} turns\nMe ${mine}\nVs ${theirs}`;
   appEl.innerHTML = `<section class="result">
