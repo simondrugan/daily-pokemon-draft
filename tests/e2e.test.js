@@ -19,12 +19,12 @@ const data = buildData(readRaw());
 const TURN_LIMIT = 500;
 
 // Event types that act() in public/js/app.js plays back (its if/else chain on `e.t`).
-const PLAYED_EVENTS = new Set(['msg', 'hp', 'status', 'faint', 'switch', 'anim']);
+// 'stages' and 'move' update app.view for the creature details panel (ticket #3).
+const PLAYED_EVENTS = new Set(['msg', 'hp', 'status', 'faint', 'switch', 'anim', 'stages', 'move']);
 // Event types the engine emits that act() in public/js/app.js deliberately has no branch for:
-// 'stages' always comes with a msg describing the change, and the end of the battle is read
-// from state.phase/state.winner rather than from 'over'. 'move' (which move a creature used)
-// is not played yet (ticket #3). Anything else is unknown and fails.
-const UNPLAYED_EVENTS = new Set(['stages', 'over', 'move']);
+// the end of the battle is read from state.phase/state.winner rather than from 'over'.
+// Anything else is unknown and fails.
+const UNPLAYED_EVENTS = new Set(['over']);
 
 const SEEDS = [
   0, 1, 2, 3, 7, 42, 99, 123, 777, 1000, 2024, 4242, 31337, 65535, 99991,

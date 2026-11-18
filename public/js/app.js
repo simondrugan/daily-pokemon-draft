@@ -9,6 +9,8 @@ import { hashString } from './rng.js';
 const $ = (sel, root = document) => root.querySelector(sel);
 const appEl = $('#app');
 const STAT_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' };
+const ZERO_STAGES = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+const STATUS_NAMES = { burn: 'Burned', poison: 'Poisoned', paralysis: 'Paralyzed', sleep: 'Asleep' };
 const STATUS_LABELS = { burn: 'BRN', poison: 'PSN', paralysis: 'PAR', sleep: 'SLP' };
 const SPEEDS = [
   { id: '1', label: '1×', ms: 750 },
@@ -77,11 +79,19 @@ function creatureCard(slot, { button = '', compact = false } = {}) {
 
 // ---------- modal: type chart and help ----------
 
-function openModal(html) {
+let modalOpener = null;
+function openModal(html, opener = null) {
   $('#modal-body').innerHTML = html;
   $('#modal').hidden = false;
+  modalOpener = opener;
+  if (opener) $('.modal-close').focus();
 }
-function closeModal() { $('#modal').hidden = true; }
+function closeModal() {
+  if ($('#modal').hidden) return;
+  $('#modal').hidden = true;
+  if (modalOpener && modalOpener.isConnected) modalOpener.focus();
+  modalOpener = null;
+}
 
 function typeChartHTML() {
   const head = data.types.map((t) => `<th><span class="type vertical" style="--c:${t.color}">${t.name}</span></th>`).join('');
@@ -112,6 +122,7 @@ const helpHTML = () => `<h2>How to play</h2>
     <li><b>Draft.</b> Over ${data.settings.draft.rounds} rounds you're shown ${data.settings.draft.optionsPerRound} creatures, each with a randomly rolled set of moves. Pick one per round.</li>
     <li><b>Balance your team.</b> The coverage panel shows which attack types your team is weak to and which types you can hit hard. Check the champion's team before you pick.</li>
     <li><b>Battle.</b> Each turn choose a move or switch creature. Faster creatures act first. Attacks that match the user's type do extra damage.</li>
+    <li><b>Check a creature.</b> In battle, tap your creature or the foe to see its types, weaknesses, stat changes and moves.</li>
     <li><b>Win</b> by knocking out all of ${data.champion.name}'s creatures.</li>
   </ol>
   <p class="muted">Status effects: <b>Burn</b> halves physical damage and hurts each turn. <b>Poison</b> hurts more each turn. <b>Paralysis</b> halves speed and sometimes costs a turn. <b>Sleep</b> costs 1–3 turns.</p>
@@ -221,10 +232,18 @@ function renderTeamReview() {
 
 function startBattle() {
   app.battle = createBattle(data, app.team, hashString('battle:' + app.seed + ':' + Date.now()));
+  // app.view is the played-back state: what the player has seen so far. Static facts are
+  // copied in here once; the foe's moves are not, they only appear in `seen` as they are used.
   const snap = (side) => ({
     active: 0,
+    team: app.battle.sides[side].team.map((f) => ({
+      id: f.id, name: f.name, types: [...f.types], maxHp: f.maxHp,
+      moves: side === 'player' ? [...f.moves] : null,
+    })),
     hp: app.battle.sides[side].team.map((f) => f.hp),
     status: app.battle.sides[side].team.map(() => null),
+    stages: app.battle.sides[side].team.map(() => ({ ...ZERO_STAGES })),
+    seen: app.battle.sides[side].team.map(() => new Set()),
   });
   app.view = { player: snap('player'), foe: snap('foe') };
   app.log = [`${data.champion.name} wants to battle!`];
@@ -234,9 +253,9 @@ function startBattle() {
 }
 
 function renderBattle() {
-  const side = (s) => `<div class="fighter ${s}" id="f-${s}">
+  const side = (s) => `<div class="fighter ${s}" id="f-${s}" role="button" tabindex="0" data-side="${s}">
       <div class="plate">
-        <div class="plate-top"><b class="f-name"></b><span class="f-status"></span></div>
+        <div class="plate-top"><b class="f-name"></b><span class="f-status"></span><span class="f-info" aria-hidden="true">ⓘ</span></div>
         <div class="f-types"></div>
         <div class="hpbar"><i></i></div>
         <div class="plate-bottom"><span class="f-hp"></span><span class="pips"></span></div>
@@ -266,6 +285,12 @@ function renderBattle() {
     refreshField();
     renderControls();
   };
+  appEl.querySelectorAll('.fighter').forEach((el) => {
+    el.onclick = () => openDetails(el.dataset.side, el);
+    el.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetails(el.dataset.side, el); }
+    };
+  });
   refreshField(true);
   renderLog();
   renderControls();
@@ -274,12 +299,13 @@ function renderBattle() {
 function refreshField(newSprites = false) {
   for (const s of ['foe', 'player']) {
     const v = app.view[s];
-    const f = app.battle.sides[s].team[v.active];
+    const f = v.team[v.active];
     const c = data.creatureById[f.id];
     const el = $('#f-' + s);
     const hp = v.hp[v.active];
     const pct = (hp / f.maxHp) * 100;
     $('.f-name', el).textContent = f.name;
+    el.setAttribute('aria-label', `Show details for ${f.name}`);
     $('.f-types', el).innerHTML = typeBadges(f.types);
     const st = v.status[v.active];
     $('.f-status', el).innerHTML = st ? `<span class="status ${st}">${STATUS_LABELS[st]}</span>` : '';
@@ -296,6 +322,42 @@ function refreshField(newSprites = false) {
     }
     sp.classList.toggle('fainted', hp <= 0);
   }
+}
+
+// Details panel for the active creature on one side. Built only from app.view (the played-back
+// state), never from app.battle, which runs ahead of the animation and knows the foe's moves.
+function stagesText(stages) {
+  const parts = Object.keys(ZERO_STAGES).filter((s) => stages[s]).map((s) => `${STAT_LABELS[s]} ${stages[s] > 0 ? '+' : '−'}${Math.abs(stages[s])}`);
+  return parts.length ? parts.join(' · ') : 'No stat changes';
+}
+
+function detailsHTML(side) {
+  const v = app.view[side];
+  const i = v.active;
+  const f = v.team[i];
+  const c = data.creatureById[f.id];
+  const hp = v.hp[i];
+  const st = v.status[i];
+  const owner = side === 'player' ? 'Your creature' : `${data.champion.name}'s creature`;
+  const moves = side === 'player' ? f.moves : [...v.seen[i]];
+  const moveList = moves.length
+    ? `<ul class="moves">${moves.map(moveRow).join('')}</ul>`
+    : '<p class="muted small">No moves seen yet.</p>';
+  return `<div class="details">
+    <div class="card-head">${iconHTML(c, 72)}<div><p class="muted small details-owner">${owner}</p><h2>${f.name}</h2><div>${typeBadges(f.types)}</div></div></div>
+    <p class="details-hp">${hp <= 0 ? 'Fainted' : `${hp} / ${f.maxHp} HP`}${st ? ` · <span class="status ${st}">${STATUS_LABELS[st]}</span> ${STATUS_NAMES[st]}` : ''}</p>
+    <h3>Matchups</h3>
+    <div class="profile">${profileHTML(f.types) || '<p class="muted small">No weaknesses or resistances.</p>'}</div>
+    <h3>Stat changes</h3>
+    <p class="small">${stagesText(v.stages[i])}</p>
+    <h3>${side === 'player' ? 'Moves' : 'Moves seen'}</h3>
+    ${moveList}
+  </div>`;
+}
+
+function openDetails(side, opener) {
+  if (!app.view) return;
+  openModal(detailsHTML(side), opener);
 }
 
 function renderLog() {
@@ -377,8 +439,15 @@ async function act(fn) {
     } else if (e.t === 'faint') {
       app.view[e.side].status[e.idx] = null;
       refreshField();
+    } else if (e.t === 'stages') {
+      app.view[e.side].stages[e.idx] = { ...e.stages };
+    } else if (e.t === 'move') {
+      app.view[e.side].seen[e.idx].add(e.move);
     } else if (e.t === 'switch') {
-      app.view[e.side].active = e.idx;
+      // Same as doSwitch in engine.js: the creature leaving loses its stat changes.
+      const v = app.view[e.side];
+      v.stages[v.active] = { ...ZERO_STAGES };
+      v.active = e.idx;
       refreshField();
     } else if (e.t === 'anim' && ms) {
       const sp = $(`#f-${e.side} .f-sprite`);
